@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioPrint</title>
+<style>
+  /* ── Reset & Base ─────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:    #0057ff;
+    --blue-lt: #e8f0ff;
+    --green:   #1a7a1a;
+    --green-lt:#e8f5e8;
+    --red:     #c0392b;
+    --red-lt:  #fdf0ef;
+    --amber:   #b45309;
+    --amber-lt:#fffbeb;
+    --gray-50: #f9fafb;
+    --gray-100:#f3f4f6;
+    --gray-200:#e5e7eb;
+    --gray-400:#9ca3af;
+    --gray-600:#4b5563;
+    --gray-900:#111827;
+    --radius:  8px;
+    --shadow:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-900);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── Layout ───────────────────────────────────────────────────── */
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--blue);
+    letter-spacing: -.3px;
+  }
+
+  .logo span { color: var(--gray-900); }
+
+  .header-meta {
+    font-size: 12px;
+    color: var(--gray-400);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .job-badge {
+    background: var(--blue-lt);
+    color: var(--blue);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 11px;
+    display: none;
+  }
+
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* ── Progress rail ────────────────────────────────────────────── */
+  .progress-rail {
+    display: flex;
+    align-items: center;
+    margin-bottom: 32px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .progress-rail::-webkit-scrollbar { height: 0; }
+
+  .rail-step {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .rail-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    border: 2px solid var(--gray-200);
+    background: #fff;
+    color: var(--gray-400);
+    transition: all .2s;
+    cursor: default;
+    position: relative;
+  }
+
+  .rail-dot.done {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+  }
+
+  .rail-dot.active {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+    box-shadow: 0 0 0 3px rgba(0,87,255,.2);
+  }
+
+  .rail-dot.failed {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+  }
+
+  .rail-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gray-400);
+    text-align: center;
+    margin-top: 4px;
+    white-space: nowrap;
+  }
+
+  .rail-step-inner { display: flex; flex-direction: column; align-items: center; }
+
+  .rail-line {
+    height: 2px;
+    width: 32px;
+    background: var(--gray-200);
+    margin: 0 4px;
+    flex-shrink: 0;
+    transition: background .3s;
+    margin-bottom: 16px;
+  }
+
+  .rail-line.done { background: var(--green); }
+
+  /* ── Step cards ───────────────────────────────────────────────── */
+  .step-card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: box-shadow .2s;
+  }
+
+  .step-card.active { box-shadow: var(--shadow-md); border-color: var(--blue); }
+  .step-card.done   { border-color: var(--gray-200); }
+  .step-card.locked { opacity: .55; pointer-events: none; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    gap: 12px;
+    cursor: default;
+  }
+
+  .step-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .step-card.active  .step-number { background: var(--blue);  color: #fff; }
+  .step-card.done    .step-number { background: var(--green); color: #fff; }
+  .step-card.failed  .step-number { background: var(--red);   color: #fff; }
+
+  .step-title { font-weight: 600; font-size: 14px; flex: 1; }
+  .step-subtitle { font-size: 12px; color: var(--gray-400); }
+
+  .step-status-chip {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .chip-pending  { background: var(--gray-100); color: var(--gray-400); }
+  .chip-active   { background: var(--blue-lt);  color: var(--blue); }
+  .chip-done     { background: var(--green-lt); color: var(--green); }
+  .chip-failed   { background: var(--red-lt);   color: var(--red); }
+  .chip-running  { background: var(--amber-lt); color: var(--amber); }
+
+  .step-body {
+    padding: 0 20px 20px;
+    display: none;
+  }
+
+  .step-card.active .step-body,
+  .step-card.done   .step-body { display: block; }
+
+  /* ── Form elements ────────────────────────────────────────────── */
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--gray-900);
+    background: #fff;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(0,87,255,.12);
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--gray-200);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    position: relative;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--blue);
+    background: var(--blue-lt);
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon { font-size: 28px; margin-bottom: 8px; }
+  .drop-text { font-size: 13px; color: var(--gray-600); }
+  .drop-hint { font-size: 11px; color: var(--gray-400); margin-top: 4px; }
+  .drop-filename { font-size: 13px; font-weight: 600; color: var(--blue); margin-top: 8px; }
+
+  .form-row { margin-bottom: 16px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── Buttons ──────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: background .15s, opacity .15s, transform .1s;
+    text-decoration: none;
+  }
+
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  .btn-primary   { background: var(--blue);  color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #0048d4; }
+
+  .btn-success   { background: var(--green); color: #fff; }
+  .btn-success:hover:not(:disabled) { background: #155e15; }
+
+  .btn-outline {
+    background: #fff;
+    color: var(--gray-900);
+    border: 1px solid var(--gray-200);
+  }
+  .btn-outline:hover:not(:disabled) { background: var(--gray-50); }
+
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* ── Result blocks ────────────────────────────────────────────── */
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .stat-box {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-100);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+
+  .stat-label { font-size: 10px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: .5px; }
+  .stat-value { font-size: 18px; font-weight: 700; color: var(--gray-900); line-height: 1.2; margin-top: 2px; }
+  .stat-unit  { font-size: 11px; font-weight: 400; color: var(--gray-400); }
+
+  .check-list { list-style: none; margin: 8px 0; }
+  .check-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 13px;
+  }
+  .check-list li:last-child { border-bottom: none; }
+  .check-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  .warn-box {
+    background: var(--amber-lt);
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--amber);
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .error-box {
+    background: var(--red-lt);
+    border: 1px solid #fca5a5;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--red);
+    margin-top: 8px;
+  }
+
+  .success-banner {
+    background: var(--green-lt);
+    border: 1px solid #86efac;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--green);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .divider { height: 1px; background: var(--gray-100); margin: 16px 0; }
+
+  /* ── Material assignment table ────────────────────────────────── */
+  .layer-assign {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 12px 0;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .layer-assign-header {
+    display: grid;
+    grid-template-columns: 64px 1fr 1fr;
+    gap: 0;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    position: sticky;
+    top: 0;
+  }
+
+  .layer-row {
+    display: grid;
+    grid-template-columns: 64px 1fr 1fr;
+    align-items: center;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 12px;
+  }
+
+  .layer-row:last-child { border-bottom: none; }
+  .layer-row:nth-child(even) { background: var(--gray-50); }
+
+  .layer-row select {
+    padding: 4px 8px;
+    font-size: 12px;
+    height: auto;
+  }
+
+  .bulk-assign {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--blue-lt);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .bulk-assign label {
+    margin: 0;
+    color: var(--blue);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .bulk-assign select { max-width: 220px; }
+
+  /* ── Download area ────────────────────────────────────────────── */
+  .artifact-list { list-style: none; margin: 8px 0; }
+  .artifact-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 13px;
+  }
+  .artifact-list li:last-child { border-bottom: none; }
+  .artifact-name { color: var(--gray-600); display: flex; align-items: center; gap: 6px; }
+
+  /* ── Spinner ──────────────────────────────────────────────────── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    display: inline-block;
+  }
+  .spinner-dark {
+    border-color: rgba(0,0,0,.15);
+    border-top-color: var(--blue);
+  }
+
+  /* ── Misc ─────────────────────────────────────────────────────── */
+  .range-row { display: flex; align-items: center; gap: 12px; }
+  .range-row input[type="range"] { flex: 1; accent-color: var(--blue); }
+  .range-val { font-size: 13px; font-weight: 700; min-width: 48px; text-align: right; }
+
+  .disclaimer {
+    font-size: 11px;
+    color: var(--gray-400);
+    margin-top: 12px;
+    line-height: 1.6;
+    border-top: 1px solid var(--gray-100);
+    padding-top: 12px;
+  }
+
+  .new-job-link {
+    font-size: 12px;
+    color: var(--blue);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 0;
+    text-decoration: underline;
+  }
+
+  .tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: .3px;
+  }
+  .tag-blue { background: var(--blue-lt); color: var(--blue); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Bio<span>Print</span></div>
+  <div class="header-meta">
+    <span id="jobBadge" class="job-badge"></span>
+    <button class="new-job-link" onclick="resetToNewJob()">+ New job</button>
+    <span>EU ATMP Platform</span>
+  </div>
+</header>
+
+<main>
+  <!-- Progress rail -->
+  <div class="progress-rail" id="progressRail"></div>
+
+  <!-- Step cards injected here -->
+  <div id="stepsContainer"></div>
+</main>
+
+<script>
+/* ── State ────────────────────────────────────────────────────────────────── */
+const state = {
+  jobId: null,
+  jobName: null,
+  geometry: null,
+  sliceData: null,
+  materials: [],       // library
+  assignments: [],     // layer assignments
+  compliance: null,
+  gcodeResult: null,
+  reportFilename: null,
+  currentStep: 0,
+  stepStatus: {},      // stepId → 'pending'|'active'|'done'|'failed'|'running'
+};
+
+const API = '';  // same origin; change to 'http://localhost:8000' for separate dev
+
+/* ── Step definitions ─────────────────────────────────────────────────────── */
+const STEPS = [
+  { id: 'upload',     label: 'Upload',    subtitle: 'STL model' },
+  { id: 'geometry',   label: 'Geometry',  subtitle: 'Analyse bounds' },
+  { id: 'slice',      label: 'Slice',     subtitle: 'Layer settings' },
+  { id: 'materials',  label: 'Materials', subtitle: 'Assign bioinks' },
+  { id: 'validate',   label: 'Validate',  subtitle: 'EU ATMP checks' },
+  { id: 'gcode',      label: 'G-code',    subtitle: 'Generate' },
+  { id: 'report',     label: 'Report',    subtitle: 'Technical file' },
+  { id: 'export',     label: 'Export',    subtitle: 'Download all' },
+];
+
+/* ── Boot ─────────────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  STEPS.forEach(s => state.stepStatus[s.id] = 'pending');
+  renderRail();
+  renderSteps();
+  activateStep(0);
+});
+
+/* ── Rail ─────────────────────────────────────────────────────────────────── */
+function renderRail() {
+  const rail = document.getElementById('progressRail');
+  rail.innerHTML = STEPS.map((s, i) => `
+    <div class="rail-step">
+      <div class="rail-step-inner">
+        <div class="rail-dot" id="rail-${s.id}" data-idx="${i}">${i + 1}</div>
+        <div class="rail-label">${s.label}</div>
+      </div>
+      ${i < STEPS.length - 1 ? `<div class="rail-line" id="railline-${i}"></div>` : ''}
+    </div>
+  `).join('');
+}
+
+function updateRail() {
+  STEPS.forEach((s, i) => {
+    const dot = document.getElementById(`rail-${s.id}`);
+    const st  = state.stepStatus[s.id];
+    dot.className = 'rail-dot' + (st === 'done' ? ' done' : st === 'active' || st === 'running' ? ' active' : st === 'failed' ? ' failed' : '');
+    dot.textContent = st === 'done' ? '✓' : i + 1;
+    if (i < STEPS.length - 1) {
+      const line = document.getElementById(`railline-${i}`);
+      line.className = 'rail-line' + (st === 'done' ? ' done' : '');
+    }
+  });
+}
+
+/* ── Step cards ───────────────────────────────────────────────────────────── */
+function renderSteps() {
+  const container = document.getElementById('stepsContainer');
+  container.innerHTML = STEPS.map((s, i) => `
+    <div class="step-card locked" id="card-${s.id}">
+      <div class="step-header">
+        <div class="step-number" id="stepnum-${s.id}">${i + 1}</div>
+        <div style="flex:1">
+          <div class="step-title">${s.label}</div>
+          <div class="step-subtitle">${s.subtitle}</div>
+        </div>
+        <div class="step-status-chip chip-pending" id="chip-${s.id}">Pending</div>
+      </div>
+      <div class="step-body" id="body-${s.id}">
+        ${stepBodyHTML(s.id)}
+      </div>
+    </div>
+  `).join('');
+
+  attachDragDrop();
+}
+
+function stepBodyHTML(id) {
+  switch (id) {
+    case 'upload': return `
+      <div class="form-row">
+        <label>Job name</label>
+        <input type="text" id="jobNameInput" placeholder="e.g. Liver Scaffold — Patient 047" />
+      </div>
+      <div class="form-row">
+        <label>STL model file</label>
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="stlFile" accept=".stl" />
+          <div class="drop-icon">📂</div>
+          <div class="drop-text">Drop your STL file here, or click to browse</div>
+          <div class="drop-hint">Binary STL only &mdash; max 50 MB</div>
+          <div class="drop-filename" id="dropFilename"></div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="submitUpload()">
+          <span>Create job</span>
+        </button>
+      </div>
+      <div id="uploadError"></div>`;
+
+    case 'geometry': return `
+      <div id="geoResult">
+        <div style="display:flex;align-items:center;gap:8px;color:var(--gray-400);font-size:13px;">
+          <div class="spinner spinner-dark"></div> Analysing model&hellip;
+        </div>
+      </div>`;
+
+    case 'slice': return `
+      <div class="form-row">
+        <label>Layer height</label>
+        <div class="range-row">
+          <input type="range" id="layerHeight" min="0.05" max="1.0" step="0.05" value="0.2"
+            oninput="document.getElementById('lhVal').textContent=parseFloat(this.value).toFixed(2)+' mm'" />
+          <span class="range-val" id="lhVal">0.20 mm</span>
+        </div>
+      </div>
+      <div id="slicePreview" style="font-size:12px;color:var(--gray-400);margin-bottom:4px;"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="submitSlice()">Slice model</button>
+      </div>
+      <div id="sliceResult"></div>`;
+
+    case 'materials': return `
+      <div id="materialsBody">
+        <div style="color:var(--gray-400);font-size:13px;">Loading material library&hellip;</div>
+      </div>`;
+
+    case 'validate': return `
+      <div id="validateResult">
+        <div style="display:flex;align-items:center;gap:8px;color:var(--gray-400);font-size:13px;">
+          <div class="spinner spinner-dark"></div> Running compliance checks&hellip;
+        </div>
+      </div>`;
+
+    case 'gcode': return `
+      <div id="gcodeResult">
+        <div style="display:flex;align-items:center;gap:8px;color:var(--gray-400);font-size:13px;">
+          <div class="spinner spinner-dark"></div> Generating G-code&hellip;
+        </div>
+      </div>`;
+
+    case 'report': return `
+      <div id="reportResult">
+        <div style="display:flex;align-items:center;gap:8px;color:var(--gray-400);font-size:13px;">
+          <div class="spinner spinner-dark"></div> Generating report&hellip;
+        </div>
+      </div>`;
+
+    case 'export': return `
+      <div id="exportBody">
+        <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px;">
+          Bundle all artifacts — G-code, report, regulatory metadata — into a single zip.
+        </p>
+        <div class="btn-group">
+          <button class="btn btn-success" onclick="submitExport()">
+            ⬇ Download export zip
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="downloadSingle('report')">
+            Report only
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="downloadSingle('gcode')">
+            G-code only
+          </button>
+        </div>
+        <div id="exportResult"></div>
+        <div class="disclaimer">
+          <strong>EU ATMP notice:</strong> All exported files are documentation aids only.
+          Regulatory submission requires review by a qualified Responsible Person.
+          Regulation reference: EC 1394/2007.
+        </div>
+      </div>`;
+  }
+}
+
+/* ── Step state machine ───────────────────────────────────────────────────── */
+function activateStep(idx) {
+  const step = STEPS[idx];
+  state.currentStep = idx;
+
+  // Unlock up to current
+  STEPS.forEach((s, i) => {
+    const card = document.getElementById(`card-${s.id}`);
+    const chip = document.getElementById(`chip-${s.id}`);
+
+    if (i < idx) {
+      // already done
+    } else if (i === idx) {
+      card.className = 'step-card active';
+      state.stepStatus[s.id] = 'active';
+      setChip(s.id, 'active');
+    } else {
+      card.className = 'step-card locked';
+      state.stepStatus[s.id] = 'pending';
+      setChip(s.id, 'pending');
+    }
+  });
+
+  updateRail();
+
+  // Scroll card into view smoothly
+  setTimeout(() => {
+    const card = document.getElementById(`card-${step.id}`);
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 80);
+}
+
+function markDone(stepId) {
+  const card = document.getElementById(`card-${stepId}`);
+  card.className = 'step-card done';
+  state.stepStatus[stepId] = 'done';
+  setChip(stepId, 'done');
+  updateRail();
+}
+
+function markFailed(stepId) {
+  const card = document.getElementById(`card-${stepId}`);
+  card.className = 'step-card failed';
+  state.stepStatus[stepId] = 'failed';
+  setChip(stepId, 'failed');
+  updateRail();
+}
+
+function setChip(stepId, status) {
+  const chip = document.getElementById(`chip-${stepId}`);
+  const labels = { pending:'Pending', active:'Ready', done:'Done', failed:'Failed', running:'Running…' };
+  const classes = { pending:'chip-pending', active:'chip-active', done:'chip-done', failed:'chip-failed', running:'chip-running' };
+  chip.className = 'step-status-chip ' + classes[status];
+  chip.textContent = labels[status];
+}
+
+function nextStep() {
+  const next = state.currentStep + 1;
+  if (next < STEPS.length) activateStep(next);
+}
+
+/* ── Drag & drop ──────────────────────────────────────────────────────────── */
+function attachDragDrop() {
+  const zone = document.getElementById('dropZone');
+  const input = document.getElementById('stlFile');
+  if (!zone) return;
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) setDropFile(file);
+  });
+  input.addEventListener('change', () => {
+    if (input.files[0]) setDropFile(input.files[0]);
+  });
+}
+
+function setDropFile(file) {
+  document.getElementById('dropFilename').textContent = '📄 ' + file.name;
+  // store on the input element for later retrieval
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  document.getElementById('stlFile').files = dt.files;
+}
+
+/* ── Step 1: Upload ───────────────────────────────────────────────────────── */
+async function submitUpload() {
+  const name = document.getElementById('jobNameInput').value.trim();
+  const fileInput = document.getElementById('stlFile');
+  const errEl = document.getElementById('uploadError');
+  errEl.innerHTML = '';
+
+  if (!name) return showError(errEl, 'Please enter a job name.');
+  if (!fileInput.files.length) return showError(errEl, 'Please select an STL file.');
+
+  const btn = event.target;
+  setLoading(btn, true);
+
+  const fd = new FormData();
+  fd.append('name', name);
+  fd.append('file', fileInput.files[0]);
+
+  try {
+    const res = await fetch(`${API}/jobs?name=${encodeURIComponent(name)}`, {
+      method: 'POST', body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Upload failed.');
+
+    state.jobId   = data.id;
+    state.jobName = data.name;
+
+    const badge = document.getElementById('jobBadge');
+    badge.textContent = `Job #${data.id}`;
+    badge.style.display = 'inline';
+
+    markDone('upload');
+    nextStep();
+    runGeometry();
+  } catch (e) {
+    showError(errEl, e.message);
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+/* ── Step 2: Geometry ─────────────────────────────────────────────────────── */
+async function runGeometry() {
+  setChip('geometry', 'running');
+  const el = document.getElementById('geoResult');
+
+  try {
+    const res = await fetch(`${API}/jobs/${state.jobId}/simulate-bounds`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Geometry analysis failed.');
+
+    state.geometry = data;
+
+    const warns = (data.warnings || []).map(w =>
+      `<div class="warn-box"><span>⚠</span>${w}</div>`).join('');
+
+    el.innerHTML = `
+      <div class="result-grid">
+        <div class="stat-box"><div class="stat-label">Width</div><div class="stat-value">${data.x_mm}<span class="stat-unit"> mm</span></div></div>
+        <div class="stat-box"><div class="stat-label">Depth</div><div class="stat-value">${data.y_mm}<span class="stat-unit"> mm</span></div></div>
+        <div class="stat-box"><div class="stat-label">Height</div><div class="stat-value">${data.z_mm}<span class="stat-unit"> mm</span></div></div>
+        <div class="stat-box"><div class="stat-label">Volume</div><div class="stat-value">${fmtNum(data.volume_mm3)}<span class="stat-unit"> mm³</span></div></div>
+        <div class="stat-box"><div class="stat-label">Triangles</div><div class="stat-value">${fmtNum(data.triangle_count)}</div></div>
+        <div class="stat-box"><div class="stat-label">Est. layers</div><div class="stat-value">${data.layer_count_estimate}<span class="stat-unit"> @0.2mm</span></div></div>
+      </div>
+      ${warns}`;
+
+    // Pre-fill slice preview
+    document.getElementById('slicePreview').textContent =
+      `At 0.20 mm → ${data.layer_count_estimate} layers`;
+
+    markDone('geometry');
+    nextStep();
+  } catch (e) {
+    el.innerHTML = `<div class="error-box">❌ ${e.message}</div>`;
+    markFailed('geometry');
+  }
+}
+
+/* ── Step 3: Slice ────────────────────────────────────────────────────────── */
+document.addEventListener('change', e => {
+  if (e.target.id === 'layerHeight') {
+    const lh = parseFloat(e.target.value);
+    const z  = state.geometry?.z_mm ?? 0;
+    const n  = z ? Math.max(1, Math.round(z / lh)) : '—';
+    document.getElementById('slicePreview').textContent =
+      `At ${lh.toFixed(2)} mm → ~${n} layers`;
+  }
+});
+
+async function submitSlice() {
+  const lh = parseFloat(document.getElementById('layerHeight').value);
+  const el = document.getElementById('sliceResult');
+  el.innerHTML = '';
+
+  const btn = event.target;
+  setLoading(btn, true);
+  setChip('slice', 'running');
+
+  try {
+    const res = await fetch(`${API}/jobs/${state.jobId}/slice?layer_height_mm=${lh}`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Slicing failed.');
+
+    state.sliceData = data;
+    el.innerHTML = `
+      <div class="success-banner" style="margin-top:12px;">
+        ✓ Sliced into <strong>${data.layer_count} layers</strong> at ${data.layer_height_mm} mm
+      </div>`;
+
+    markDone('slice');
+    nextStep();
+    await loadMaterials();
+  } catch (e) {
+    el.innerHTML = `<div class="error-box">❌ ${e.message}</div>`;
+    markFailed('slice');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+/* ── Step 4: Materials ────────────────────────────────────────────────────── */
+async function loadMaterials() {
+  const el = document.getElementById('materialsBody');
+  setChip('materials', 'running');
+  try {
+    const res = await fetch(`${API}/jobs/materials`);
+    const data = await res.json();
+    state.materials = data;
+    renderMaterialsUI(el, data);
+    setChip('materials', 'active');
+  } catch (e) {
+    el.innerHTML = `<div class="error-box">❌ Could not load material library: ${e.message}</div>`;
+  }
+}
+
+function renderMaterialsUI(el, materials) {
+  const opts = materials.map(m =>
+    `<option value="${m.id}">${m.name} — ${m.bioink_type}</option>`).join('');
+
+  const layerCount = state.sliceData?.layer_count ?? 0;
+
+  // Build per-layer rows (capped to 200 for performance)
+  const visible = Math.min(layerCount, 200);
+  const rows = Array.from({ length: visible }, (_, i) => `
+    <div class="layer-row">
+      <span style="color:var(--gray-400)">L${i}</span>
+      <span style="font-size:11px;color:var(--gray-400)">${(i * (state.sliceData.layer_height_mm ?? 0.2)).toFixed(2)} mm</span>
+      <select class="layer-mat-sel" data-layer="${i}">
+        <option value="">— none —</option>
+        ${opts}
+      </select>
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div class="bulk-assign">
+      <label>Assign all layers →</label>
+      <select id="bulkMat">
+        <option value="">— pick material —</option>
+        ${opts}
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="applyBulk()">Apply to all</button>
+    </div>
+    <div class="layer-assign">
+      <div class="layer-assign-header">
+        <span>Layer</span><span>Z bottom</span><span>Material</span>
+      </div>
+      ${rows}
+      ${layerCount > 200 ? `<div style="padding:8px 12px;font-size:11px;color:var(--gray-400);">…and ${layerCount - 200} more layers (use bulk assign)</div>` : ''}
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="submitMaterials()">Save assignments</button>
+    </div>
+    <div id="matResult"></div>`;
+}
+
+function applyBulk() {
+  const val = document.getElementById('bulkMat').value;
+  if (!val) return;
+  document.querySelectorAll('.layer-mat-sel').forEach(sel => sel.value = val);
+}
+
+async function submitMaterials() {
+  const layerCount = state.sliceData?.layer_count ?? 0;
+  const sels = document.querySelectorAll('.layer-mat-sel');
+  const errEl = document.getElementById('matResult');
+  errEl.innerHTML = '';
+
+  // Build assignments from visible rows; fill rest with bulk value
+  const bulkVal = document.getElementById('bulkMat')?.value;
+  const visibleMap = {};
+  sels.forEach(s => { if (s.value) visibleMap[parseInt(s.dataset.layer)] = parseInt(s.value); });
+
+  const assignments = [];
+  for (let i = 0; i < layerCount; i++) {
+    const mid = visibleMap[i] ?? (bulkVal ? parseInt(bulkVal) : null);
+    if (mid) assignments.push({ layer_index: i, material_id: mid });
+  }
+
+  if (assignments.length === 0)
+    return showError(errEl, 'Assign at least one material before continuing.');
+
+  const btn = event.target;
+  setLoading(btn, true);
+  setChip('materials', 'running');
+
+  try {
+    const res = await fetch(`${API}/jobs/${state.jobId}/materials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignments }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Assignment failed.');
+
+    state.assignments = assignments;
+
+    const warns = (data.warnings || []).map(w =>
+      `<div class="warn-box"><span>⚠</span>${w}</div>`).join('');
+
+    errEl.innerHTML = `
+      <div class="success-banner" style="margin-top:12px;">
+        ✓ ${data.assigned_count} layer assignments saved
+      </div>${warns}`;
+
+    markDone('materials');
+    nextStep();
+    await runValidation();
+  } catch (e) {
+    showError(errEl, e.message);
+    setChip('materials', 'active');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+/* ── Step 5: Validate ─────────────────────────────────────────────────────── */
+async function runValidation() {
+  setChip('validate', 'running');
+  const el = document.getElementById('validateResult');
+
+  try {
+    const res = await fetch(`${API}/jobs/${state.jobId}/validate`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Validation request failed.');
+
+    state.compliance = data;
+
+    const checks = data.checks.map(c => `
+      <li>
+        <span class="check-icon">${c.passed ? '✅' : '❌'}</span>
+        <span>
+          <span class="tag">${c.check_id}</span>
+          ${c.description}
+          ${c.detail ? `<br><span style="font-size:11px;color:var(--gray-400)">${c.detail}</span>` : ''}
+        </span>
+      </li>`).join('');
+
+    const warns = data.warnings.map(w =>
+      `<div class="warn-box"><span>⚠</span><span>${w}</span></div>`).join('');
+
+    el.innerHTML = `
+      <div class="${data.passed ? 'success-banner' : 'error-box'}" style="margin-bottom:12px;">
+        ${data.passed ? '✓ All compliance checks passed' : '✗ One or more checks failed — review before proceeding'}
+      </div>
+      <ul class="check-list">${checks}</ul>
+      ${warns}
+      <div class="btn-group">
+        <a class="btn btn-outline btn-sm" href="${API}/jobs/${state.jobId}/consent" target="_blank">
+          📄 View consent document
+        </a>
+      </div>`;
+
+    markDone('validate');
+    nextStep();
+    await runGcode();
+  } catch (e) {
+    el.innerHTML = `<div class="error-box">❌ ${e.message}</div>`;
+    markFailed('validate');
+  }
+}
+
+/* ── Step 6: G-code ───────────────────────────────────────────────────────── */
+async function runGcode() {
+  setChip('gcode', 'running');
+  const el = document.getElementById('gcodeResult');
+
+  try {
+    const res = await fetch(`${API}/jobs/${state.jobId}/gcode`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'G-code generation failed.');
+
+    state.gcodeResult = data;
+    const mins = Math.round(data.estimated_print_time_s / 60);
+
+    el.innerHTML = `
+      <div class="result-grid">
+        <div class="stat-box">
+          <div class="stat-label">G-code lines</div>
+          <div class="stat-value">${fmtNum(data.line_count)}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Est. print time</div>
+          <div class="stat-value">${mins}<span class="stat-unit"> min</span></div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <a class="btn btn-outline btn-sm"
+          href="${API}/jobs/${state.jobId}/artifacts/${data.artifact_filename}" target="_blank">
+          ⬇ Download G-code
+        </a>
+      </div>`;
+
+    markDone('gcode');
+    nextStep();
+    await runReport();
+  } catch (e) {
+    el.innerHTML = `<div class="error-box">❌ ${e.message}</div>`;
+    markFailed('gcode');
+  }
+}
+
+/* ── Step 7: Report ───────────────────────────────────────────────────────── */
+async function runReport() {
+  setChip('report', 'running');
+  const el = document.getElementById('reportResult');
+
+  try {
+    const res = await fetch(`${API}/jobs/${state.jobId}/report`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Report generation failed.');
+
+    state.reportFilename = data.report_filename;
+
+    el.innerHTML = `
+      <div class="success-banner" style="margin-bottom:12px;">✓ Technical report generated</div>
+      <div class="btn-group">
+        <a class="btn btn-outline btn-sm"
+          href="${API}/jobs/${state.jobId}/artifacts/${data.report_filename}" target="_blank">
+          📋 Open report
+        </a>
+      </div>`;
+
+    markDone('report');
+    nextStep();
+  } catch (e) {
+    el.innerHTML = `<div class="error-box">❌ ${e.message}</div>`;
+    markFailed('report');
+  }
+}
+
+/* ── Step 8: Export ───────────────────────────────────────────────────────── */
+async function submitExport() {
+  const el = document.getElementById('exportResult');
+  const btn = event.target;
+  setLoading(btn, true);
+  setChip('export', 'running');
+
+  try {
+    const res = await fetch(`${API}/jobs/${state.jobId}/export`, { method: 'POST' });
+    if (!res.ok) {
+      const d = await res.json();
+      throw new Error(d.detail || 'Export failed.');
+    }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `bioprint_job_${state.jobId}_export.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    el.innerHTML = `
+      <div class="success-banner" style="margin-top:12px;">
+        ✓ Export downloaded — job complete
+      </div>`;
+    markDone('export');
+  } catch (e) {
+    el.innerHTML = `<div class="error-box" style="margin-top:12px;">❌ ${e.message}</div>`;
+    markFailed('export');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+async function downloadSingle(type) {
+  if (type === 'report' && state.reportFilename) {
+    window.open(`${API}/jobs/${state.jobId}/artifacts/${state.reportFilename}`, '_blank');
+  } else if (type === 'gcode' && state.gcodeResult) {
+    window.open(`${API}/jobs/${state.jobId}/artifacts/${state.gcodeResult.artifact_filename}`, '_blank');
+  }
+}
+
+/* ── Reset ────────────────────────────────────────────────────────────────── */
+function resetToNewJob() {
+  Object.assign(state, {
+    jobId: null, jobName: null, geometry: null, sliceData: null,
+    materials: [], assignments: [], compliance: null,
+    gcodeResult: null, reportFilename: null, currentStep: 0,
+  });
+  document.getElementById('jobBadge').style.display = 'none';
+  renderRail();
+  renderSteps();
+  activateStep(0);
+}
+
+/* ── Helpers ──────────────────────────────────────────────────────────────── */
+function showError(el, msg) {
+  el.innerHTML = `<div class="error-box" style="margin-top:8px;">❌ ${msg}</div>`;
+}
+
+function setLoading(btn, loading) {
+  if (loading) {
+    btn.dataset.origText = btn.innerHTML;
+    btn.innerHTML = `<div class="spinner"></div> Working…`;
+    btn.disabled = true;
+  } else {
+    btn.innerHTML = btn.dataset.origText || btn.innerHTML;
+    btn.disabled = false;
+  }
+}
+
+function fmtNum(n) {
+  if (n == null) return '—';
+  return Number(n).toLocaleString('en');
+}
+</script>
+</body>
+</html>
