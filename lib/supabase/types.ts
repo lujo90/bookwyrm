@@ -1,5 +1,31 @@
 export type RegulationStatus = "active" | "superseded" | "under_review";
-export type ReviewQueueStatus = "pending" | "approved" | "rejected" | "edited";
+export type ReviewQueueStatus =
+  | "pending"
+  | "ai_processed"
+  | "approved"
+  | "rejected"
+  | "edited";
+
+export interface MonitoringJobLog {
+  id: string;
+  job_name: string;
+  run_at: string;
+  documents_found: number;
+  documents_queued: number;
+  error_text: string | null;
+}
+
+/** Structured JSON written by the AI queue processor. */
+export interface AiInterpretation {
+  plain_language_summary: string;
+  affected_product_categories: string[];
+  affected_certifications: string[];
+  affected_channels: string[];
+  proposed_checklist_items: string[];
+  is_amendment_of_existing: boolean;
+  existing_regulation_code: string | null;
+  confidence_score: number;
+}
 
 export interface Regulation {
   id: string;
@@ -35,7 +61,7 @@ export interface RegulationReviewQueue {
   eurlex_document_url: string | null;
   eurlex_celex_number: string | null;
   raw_text: string | null;
-  ai_interpretation: Record<string, unknown> | null;
+  ai_interpretation: AiInterpretation | null;
   proposed_regulation_id: string | null;
   is_new_regulation: boolean;
   status: ReviewQueueStatus;
@@ -73,6 +99,14 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Omit<RegulationReviewQueue, "id">>;
+      };
+      monitoring_job_log: {
+        Row: MonitoringJobLog;
+        Insert: Omit<MonitoringJobLog, "id" | "run_at"> & {
+          id?: string;
+          run_at?: string;
+        };
+        Update: never;
       };
     };
   };
