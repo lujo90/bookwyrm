@@ -7,6 +7,7 @@ const PUBLIC_PATHS = [
   "/signup",
   "/verify-email",
   "/reset-password",
+  "/design",        // development-only design showcase
 ];
 
 function isPublicPath(pathname: string): boolean {

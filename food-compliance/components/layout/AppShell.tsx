@@ -1,72 +1,141 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, Package, Settings } from "lucide-react";
+import { LayoutGrid, Box, Settings } from "lucide-react";
+import AgentBar from "@/components/layout/AgentBar";
 
-type Tab = "dashboard" | "products" | "settings";
+export type AppTab = "dashboard" | "products" | "settings";
 
 interface AppShellProps {
   children: React.ReactNode;
-  activeTab: Tab;
+  activeTab: AppTab;
+  /** Override the default agent bar message */
+  agentMessage?: string;
+  /** Called when the agent bar is tapped */
+  onAgentClick?: () => void;
 }
 
-const NAV_ITEMS: { tab: Tab; label: string; href: string; icon: React.ElementType }[] = [
-  { tab: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { tab: "products",  label: "Products",  href: "/products",  icon: Package },
-  { tab: "settings",  label: "Settings",  href: "/settings",  icon: Settings },
+const NAV_ITEMS: {
+  tab:   AppTab;
+  label: string;
+  href:  string;
+  icon:  React.ElementType;
+}[] = [
+  { tab: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutGrid },
+  { tab: "products",  label: "Products",  href: "/products",  icon: Box        },
+  { tab: "settings",  label: "Settings",  href: "/settings",  icon: Settings   },
 ];
 
+const AGENT_BAR_H = 44; // px
+const NAV_H       = 60; // px
+
+const DEFAULT_MESSAGE =
+  "Your compliance assistant is ready — ask me anything";
+
 /**
- * AppShell wraps every authenticated page.
+ * AppShell
+ *
+ * Wraps every authenticated page.
  *
  * Layout (top → bottom):
- *  1. Agent bar  — persistent blue banner at the very top (placeholder for now)
- *  2. Page area  — scrollable content passed as children
- *  3. Bottom nav — 3 tabs: Dashboard, Products, Settings
+ *   1. AgentBar   — fixed, 44px, #EFF6FF
+ *   2. Page content — scrollable, padded so it clears both fixed bars
+ *   3. BottomNav  — fixed, 60px, white
+ *
+ * BottomNav tabs: Dashboard (grid), Products (box), Settings (cog).
+ * Active colour: #2563EB. Inactive: #94A3B8. Label: 10px DM Sans 600.
  */
-export default function AppShell({ children, activeTab }: AppShellProps) {
+export default function AppShell({
+  children,
+  activeTab,
+  agentMessage,
+  onAgentClick,
+}: AppShellProps) {
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
-      {/* ── Agent bar ──────────────────────────────────────────────────── */}
-      <div className="bg-primary text-white text-sm font-medium px-4 py-2.5 flex items-center gap-2 shrink-0">
-        <span className="text-xs bg-white/20 rounded px-1.5 py-0.5 font-semibold tracking-wide">
-          AI
-        </span>
-        <span className="text-white/90">
-          Your compliance assistant is ready — ask me anything
-        </span>
+    <div
+      style={{
+        display:         "flex",
+        flexDirection:   "column",
+        minHeight:       "100vh",
+        backgroundColor: "#F8FAFC",
+      }}
+    >
+      {/* ── Agent bar — fixed at top ─────────────────────────────── */}
+      <div
+        style={{
+          position: "fixed",
+          top:      0,
+          left:     0,
+          right:    0,
+          zIndex:   40,
+        }}
+      >
+        <AgentBar
+          message={agentMessage ?? DEFAULT_MESSAGE}
+          onClick={onAgentClick}
+        />
       </div>
 
-      {/* ── Page content ───────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto pb-20">
+      {/* ── Page content ────────────────────────────────────────────── */}
+      <main
+        style={{
+          flex:          1,
+          paddingTop:    AGENT_BAR_H,
+          paddingBottom: NAV_H,
+          overflowY:     "auto",
+        }}
+      >
         {children}
       </main>
 
-      {/* ── Bottom navigation ───────────────────────────────────────────── */}
-      <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 flex items-stretch h-16 z-50">
+      {/* ── Bottom navigation — fixed at bottom ─────────────────────── */}
+      <nav
+        style={{
+          position:        "fixed",
+          bottom:          0,
+          left:            0,
+          right:           0,
+          height:          NAV_H,
+          backgroundColor: "white",
+          borderTop:       "1px solid #E2E8F0",
+          display:         "flex",
+          zIndex:          50,
+        }}
+      >
         {NAV_ITEMS.map(({ tab, label, href, icon: Icon }) => {
           const isActive = activeTab === tab;
+          const color    = isActive ? "#2563EB" : "#94A3B8";
           return (
             <Link
               key={tab}
               href={href}
-              className={[
-                "flex flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors",
-                isActive
-                  ? "text-primary"
-                  : "text-light hover:text-mid",
-              ].join(" ")}
+              style={{
+                flex:           1,
+                display:        "flex",
+                flexDirection:  "column",
+                alignItems:     "center",
+                justifyContent: "center",
+                gap:            3,
+                textDecoration: "none",
+                color,
+              }}
             >
               <Icon
-                size={20}
+                size={22}
                 strokeWidth={isActive ? 2.5 : 2}
-                className="shrink-0"
+                color={color}
               />
-              {label}
-              {/* Active indicator dot */}
-              {isActive && (
-                <span className="absolute bottom-1 w-1 h-1 rounded-full bg-primary" />
-              )}
+              <span
+                style={{
+                  fontSize:   10,
+                  fontWeight: 600,
+                  color,
+                  fontFamily: "var(--font-body), DM Sans, sans-serif",
+                  lineHeight: 1,
+                }}
+              >
+                {label}
+              </span>
             </Link>
           );
         })}

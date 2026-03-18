@@ -2,18 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 /*
- * FONT NOTE
- * ---------
- * DM Sans is defined as a CSS variable in globals.css using a system-font
- * fallback so the build works offline.
- *
- * In production (where outbound network is available), replace this with:
- *
- *   import { DM_Sans } from "next/font/google";
- *   const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
- *   <html lang="en" className={dmSans.variable}>
- *
- * That will load the real DM Sans typeface from Google Fonts at build time.
+ * Fonts are loaded via CSS variable fallbacks defined in globals.css.
+ * When the build environment has internet access, replace this with
+ * next/font/google imports for Outfit (700, 800) and DM Sans (400–700).
  */
 
 export const metadata: Metadata = {

@@ -1,48 +1,55 @@
-import type { ProductStatus } from "@/types/database";
-
 interface StatusBadgeProps {
-  status: ProductStatus;
+  /** Any product status string: draft | in_review | approved | archived */
+  status: string;
 }
 
-const VARIANT_MAP: Record<
-  ProductStatus,
-  { label: string; className: string }
-> = {
-  draft: {
-    label: "Draft",
-    className: "bg-slate-100 text-slate-600",
-  },
-  in_review: {
-    label: "In Review",
-    className: "bg-blue-100 text-primary",
-  },
-  approved: {
-    label: "Approved",
-    className: "bg-green-100 text-success",
-  },
-  archived: {
-    label: "Archived",
-    className: "bg-slate-100 text-slate-400",
-  },
+interface BadgeVariant {
+  label: string;
+  color: string;
+  background: string;
+}
+
+const VARIANTS: Record<string, BadgeVariant> = {
+  draft:     { label: "Draft",     color: "#64748B", background: "#F1F5F9" },
+  in_review: { label: "In Review", color: "#2563EB", background: "#EFF6FF" },
+  approved:  { label: "Approved",  color: "#16A34A", background: "#F0FDF4" },
+  archived:  { label: "Archived",  color: "#94A3B8", background: "#F8FAFC" },
 };
 
 /**
  * StatusBadge
  *
- * A small pill that shows the current status of a product.
- * Uses your custom colour palette from tailwind.config.ts.
+ * Pill badge showing the status of a product.
+ * Accepts a plain string so it works before the DB type is imported.
+ *
+ * Spec: 10px DM Sans 700, uppercase, padding 3px 10px, border-radius 20px.
  */
 export default function StatusBadge({ status }: StatusBadgeProps) {
-  const { label, className } = VARIANT_MAP[status];
+  const variant = VARIANTS[status] ?? {
+    label:      status,
+    color:      "#64748B",
+    background: "#F1F5F9",
+  };
 
   return (
     <span
-      className={[
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
-        className,
-      ].join(" ")}
+      style={{
+        display:        "inline-flex",
+        alignItems:     "center",
+        padding:        "3px 10px",
+        borderRadius:   20,
+        fontSize:       10,
+        fontWeight:     700,
+        textTransform:  "uppercase",
+        letterSpacing:  "0.06em",
+        lineHeight:     1.4,
+        color:          variant.color,
+        backgroundColor: variant.background,
+        fontFamily:     "var(--font-body), DM Sans, sans-serif",
+        whiteSpace:     "nowrap",
+      }}
     >
-      {label}
+      {variant.label}
     </span>
   );
 }
