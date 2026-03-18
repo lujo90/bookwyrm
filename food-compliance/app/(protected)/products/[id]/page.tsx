@@ -4,7 +4,8 @@ import AppShell from "@/components/layout/AppShell";
 import ProductRecord from "./ProductRecord";
 import { createClient } from "@/lib/supabase/server";
 import { calculateScore } from "@/lib/score/calculateScore";
-import type { Product, ChecklistItem, AuditLog } from "@/types/database";
+import type { Product, ChecklistItem, AuditLog, Document } from "@/types/database";
+import type { DocumentWithUrl } from "@/components/ui/DocumentRow";
 
 interface Props {
   params: { id: string };
@@ -57,6 +58,25 @@ export default async function ProductPage({ params }: Props) {
 
   const auditLog = (auditRaw ?? []) as unknown as AuditLog[];
 
+  // Fetch documents
+  const { data: docsRaw } = await supabase
+    .from("documents")
+    .select("*")
+    .eq("product_id", params.id)
+    .order("created_at", { ascending: false });
+
+  const docRecords = (docsRaw ?? []) as unknown as Document[];
+
+  // Attach signed URLs for immediate rendering (1-hour expiry)
+  const initialDocuments: DocumentWithUrl[] = await Promise.all(
+    docRecords.map(async (doc) => {
+      const { data: urlData } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(doc.storage_path, 3600);
+      return { ...doc, signed_url: urlData?.signedUrl ?? null };
+    }),
+  );
+
   // Calculate initial score on the server so the page renders with correct data
   const initialScore = calculateScore(items);
 
@@ -67,6 +87,7 @@ export default async function ProductPage({ params }: Props) {
         initialItems={items}
         auditLog={auditLog}
         initialScore={initialScore}
+        initialDocuments={initialDocuments}
       />
     </AppShell>
   );

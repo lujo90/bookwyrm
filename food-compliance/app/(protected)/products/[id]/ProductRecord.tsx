@@ -1,28 +1,32 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ScoreGauge from "@/components/ui/ScoreGauge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import CategoryBar from "@/components/ui/CategoryBar";
 import ComplianceAnchor from "@/components/ui/ComplianceAnchor";
-import { ChevronDown, ChevronLeft, CheckCircle2 } from "lucide-react";
+import DocumentRow from "@/components/ui/DocumentRow";
+import type { DocumentWithUrl } from "@/components/ui/DocumentRow";
+import { ChevronDown, ChevronLeft, CheckCircle2, Upload } from "lucide-react";
 import type {
   Product,
   ChecklistItem,
   AuditLog,
   ChecklistCategory,
   ScoreResult,
+  DocumentType,
 } from "@/types/database";
 import { calculateScore } from "@/lib/score/calculateScore";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ProductRecordProps {
-  product:      Product;
-  initialItems: ChecklistItem[];
-  auditLog:     AuditLog[];
-  initialScore: ScoreResult;
+  product:          Product;
+  initialItems:     ChecklistItem[];
+  auditLog:         AuditLog[];
+  initialScore:     ScoreResult;
+  initialDocuments: DocumentWithUrl[];
 }
 
 type Tab = "overview" | "documents" | "supply" | "audit";
@@ -377,6 +381,16 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
   );
 }
 
+// ─── Doc type options ─────────────────────────────────────────────────────────
+
+const DOC_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
+  { value: "spec_sheet",  label: "Spec Sheet"  },
+  { value: "lab_report",  label: "Lab Report"  },
+  { value: "certificate", label: "Certificate" },
+  { value: "declaration", label: "Declaration" },
+  { value: "other",       label: "Other"        },
+];
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ProductRecord({
@@ -384,12 +398,23 @@ export default function ProductRecord({
   initialItems,
   auditLog,
   initialScore,
+  initialDocuments,
 }: ProductRecordProps) {
-  const router = useRouter();
-  const [tab, setTab]           = useState<Tab>("overview");
-  const [items, setItems]       = useState<ChecklistItem[]>(initialItems);
-  const [score, setScore]       = useState<ScoreResult>(initialScore);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const router    = useRouter();
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const [tab, setTab]               = useState<Tab>("overview");
+  const [items, setItems]           = useState<ChecklistItem[]>(initialItems);
+  const [score, setScore]           = useState<ScoreResult>(initialScore);
+  const [loadingId, setLoadingId]   = useState<string | null>(null);
+
+  // Documents state
+  const [documents, setDocuments]         = useState<DocumentWithUrl[]>(initialDocuments);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+  const [uploading, setUploading]         = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploadType, setUploadType]       = useState<DocumentType>("spec_sheet");
+  const [uploadExpiry, setUploadExpiry]   = useState("");
 
   // Optimistic toggle — update local state immediately, then call API
   const handleToggle = useCallback(async (item: ChecklistItem) => {
@@ -437,6 +462,56 @@ export default function ProductRecord({
       setLoadingId(null);
     }
   }, [items, product.id, initialScore]);
+
+  // ─── Document handlers ──────────────────────────────────────────────────────
+
+  const handleUpload = useCallback(async (file: File) => {
+    setUploading(true);
+    const form = new FormData();
+    form.append("file",  file);
+    form.append("type",  uploadType);
+    if (uploadExpiry) form.append("expiry_date", uploadExpiry);
+
+    try {
+      const res = await fetch(`/api/products/${product.id}/documents`, {
+        method: "POST",
+        body:   form,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const { document: newDoc } = await res.json();
+      setDocuments((prev) => [newDoc, ...prev]);
+      setShowUploadForm(false);
+      setUploadExpiry("");
+    } catch {
+      // Leave form open so the user can retry
+    } finally {
+      setUploading(false);
+    }
+  }, [product.id, uploadType, uploadExpiry]);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleUpload(file);
+    // Reset input so the same file can be re-selected after a failed upload
+    e.target.value = "";
+  }, [handleUpload]);
+
+  const handleDeleteDocument = useCallback(async (docId: string) => {
+    setDeletingDocId(docId);
+    try {
+      const res = await fetch(`/api/products/${product.id}/documents/${docId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      setDocuments((prev) => prev.filter((d) => d.id !== docId));
+    } catch {
+      // Keep the item in the list; user can retry
+    } finally {
+      setDeletingDocId(null);
+    }
+  }, [product.id]);
+
+  // ─── Next action button logic ────────────────────────────────────────────────
 
   // Next action button logic
   const nextBlockingItem = items
@@ -624,39 +699,255 @@ export default function ProductRecord({
 
       {/* ── Documents tab ───────────────────────────────────────────── */}
       {tab === "documents" && (
-        <div style={{ padding: 16 }}>
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius:    12,
-              padding:         24,
-              textAlign:       "center",
-              border:          "1px solid #E2E8F0",
-            }}
-          >
-            <p style={{ fontSize: 24, margin: "0 0 8px" }}>📄</p>
-            <p
+        <div>
+          {/* Hidden file input — triggered programmatically */}
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.csv,.txt"
+            style={{ display: "none" }}
+            onChange={handleFileChange}
+          />
+
+          {/* Upload form */}
+          {showUploadForm && (
+            <div
               style={{
-                fontSize:   14,
-                fontWeight: 600,
-                color:      "#1E293B",
-                fontFamily: "var(--font-body), DM Sans, sans-serif",
-                margin:     "0 0 4px",
+                backgroundColor: "white",
+                borderBottom:    "1px solid #E2E8F0",
+                padding:         "16px 16px 20px",
               }}
             >
-              Documents
-            </p>
-            <p
+              <p
+                style={{
+                  margin:     "0 0 12px",
+                  fontSize:   13,
+                  fontWeight: 700,
+                  color:      "#1E293B",
+                  fontFamily: "var(--font-body), DM Sans, sans-serif",
+                }}
+              >
+                Upload document
+              </p>
+
+              {/* Document type */}
+              <label
+                style={{
+                  display:    "block",
+                  fontSize:   11,
+                  fontWeight: 600,
+                  color:      "#64748B",
+                  fontFamily: "var(--font-body), DM Sans, sans-serif",
+                  marginBottom: 6,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                Document type
+              </label>
+              <select
+                value={uploadType}
+                onChange={(e) => setUploadType(e.target.value as DocumentType)}
+                style={{
+                  width:        "100%",
+                  height:       44,
+                  borderRadius: 8,
+                  border:       "1px solid #CBD5E1",
+                  padding:      "0 12px",
+                  fontSize:     14,
+                  color:        "#1E293B",
+                  fontFamily:   "var(--font-body), DM Sans, sans-serif",
+                  background:   "white",
+                  marginBottom: 12,
+                  cursor:       "pointer",
+                }}
+              >
+                {DOC_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+
+              {/* Expiry date — most useful for certificates */}
+              {uploadType === "certificate" && (
+                <>
+                  <label
+                    style={{
+                      display:    "block",
+                      fontSize:   11,
+                      fontWeight: 600,
+                      color:      "#64748B",
+                      fontFamily: "var(--font-body), DM Sans, sans-serif",
+                      marginBottom: 6,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    Expiry date (optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={uploadExpiry}
+                    onChange={(e) => setUploadExpiry(e.target.value)}
+                    style={{
+                      width:        "100%",
+                      height:       44,
+                      borderRadius: 8,
+                      border:       "1px solid #CBD5E1",
+                      padding:      "0 12px",
+                      fontSize:     14,
+                      color:        "#1E293B",
+                      fontFamily:   "var(--font-body), DM Sans, sans-serif",
+                      background:   "white",
+                      marginBottom: 12,
+                      boxSizing:    "border-box",
+                    }}
+                  />
+                </>
+              )}
+
+              {/* Buttons */}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => {
+                    setShowUploadForm(false);
+                    setUploadExpiry("");
+                  }}
+                  style={{
+                    flex:         1,
+                    height:       44,
+                    borderRadius: 8,
+                    border:       "1px solid #CBD5E1",
+                    background:   "white",
+                    fontSize:     14,
+                    fontWeight:   600,
+                    color:        "#64748B",
+                    fontFamily:   "var(--font-body), DM Sans, sans-serif",
+                    cursor:       "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => fileInput.current?.click()}
+                  disabled={uploading}
+                  style={{
+                    flex:            2,
+                    height:          44,
+                    borderRadius:    8,
+                    border:          "none",
+                    backgroundColor: "#2563EB",
+                    color:           "white",
+                    fontSize:        14,
+                    fontWeight:      700,
+                    fontFamily:      "var(--font-body), DM Sans, sans-serif",
+                    cursor:          uploading ? "not-allowed" : "pointer",
+                    opacity:         uploading ? 0.7 : 1,
+                  }}
+                >
+                  {uploading ? "Uploading…" : "Choose file"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Document list */}
+          {documents.length === 0 && !showUploadForm ? (
+            /* Empty state */
+            <div
               style={{
-                fontSize:   13,
-                color:      "#94A3B8",
-                fontFamily: "var(--font-body), DM Sans, sans-serif",
-                margin:     0,
+                margin:          16,
+                backgroundColor: "white",
+                borderRadius:    12,
+                padding:         "32px 24px",
+                textAlign:       "center",
+                border:          "2px dashed #E2E8F0",
               }}
             >
-              Coming in Phase 5 — upload spec sheets, lab reports, and certificates.
-            </p>
-          </div>
+              <p style={{ fontSize: 28, margin: "0 0 8px" }}>📄</p>
+              <p
+                style={{
+                  fontSize:   14,
+                  fontWeight: 600,
+                  color:      "#1E293B",
+                  fontFamily: "var(--font-body), DM Sans, sans-serif",
+                  margin:     "0 0 4px",
+                }}
+              >
+                No documents yet
+              </p>
+              <p
+                style={{
+                  fontSize:   13,
+                  color:      "#94A3B8",
+                  fontFamily: "var(--font-body), DM Sans, sans-serif",
+                  margin:     "0 0 16px",
+                }}
+              >
+                Upload spec sheets, lab reports, and certificates.
+              </p>
+              <button
+                onClick={() => setShowUploadForm(true)}
+                style={{
+                  height:          40,
+                  paddingLeft:     16,
+                  paddingRight:    16,
+                  borderRadius:    8,
+                  border:          "none",
+                  backgroundColor: "#2563EB",
+                  color:           "white",
+                  fontSize:        13,
+                  fontWeight:      700,
+                  fontFamily:      "var(--font-body), DM Sans, sans-serif",
+                  cursor:          "pointer",
+                  display:         "inline-flex",
+                  alignItems:      "center",
+                  gap:             6,
+                }}
+              >
+                <Upload size={14} />
+                Upload document
+              </button>
+            </div>
+          ) : (
+            <div>
+              {documents.map((doc) => (
+                <DocumentRow
+                  key={doc.id}
+                  doc={doc}
+                  onDelete={handleDeleteDocument}
+                  deleting={deletingDocId === doc.id}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Sticky upload button (shown when list is non-empty) */}
+          {documents.length > 0 && (
+            <div style={{ padding: "12px 16px" }}>
+              <button
+                onClick={() => setShowUploadForm((v) => !v)}
+                style={{
+                  width:           "100%",
+                  height:          44,
+                  borderRadius:    8,
+                  border:          "1px dashed #93C5FD",
+                  backgroundColor: "#EFF6FF",
+                  color:           "#2563EB",
+                  fontSize:        14,
+                  fontWeight:      600,
+                  fontFamily:      "var(--font-body), DM Sans, sans-serif",
+                  cursor:          "pointer",
+                  display:         "flex",
+                  alignItems:      "center",
+                  justifyContent:  "center",
+                  gap:             6,
+                }}
+              >
+                <Upload size={14} />
+                Upload document
+              </button>
+            </div>
+          )}
         </div>
       )}
 
