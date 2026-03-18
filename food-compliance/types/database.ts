@@ -98,6 +98,7 @@ export interface Formula {
   organisation_id: string;
   version:         number;
   is_active:       boolean;
+  is_locked:       boolean;               // true → auto-trigger product spec generation
   net_weight_g:    number | null;
   serving_size_g:  number | null;
   // Nutritional values per 100 g
@@ -109,6 +110,10 @@ export interface Formula {
   fibre_g:         number | null;
   protein_g:       number | null;
   salt_g:          number | null;
+  // Allergen / storage metadata
+  may_contain_allergens: string[];        // cross-contamination allergen codes
+  storage_conditions:    string | null;   // e.g. "Store in a cool, dry place"
+  shelf_life_days:       number | null;   // days from production
   created_by:      string;
   created_at:      string;
   updated_at:      string;

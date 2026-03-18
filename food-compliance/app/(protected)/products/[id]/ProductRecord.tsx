@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ScoreGauge from "@/components/ui/ScoreGauge";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -8,7 +8,9 @@ import CategoryBar from "@/components/ui/CategoryBar";
 import ComplianceAnchor from "@/components/ui/ComplianceAnchor";
 import DocumentRow from "@/components/ui/DocumentRow";
 import type { DocumentWithUrl } from "@/components/ui/DocumentRow";
-import { ChevronDown, ChevronLeft, CheckCircle2, Upload } from "lucide-react";
+import TemplatePreviewSheet from "@/components/ui/TemplatePreviewSheet";
+import type { TemplateType } from "@/components/ui/TemplatePreviewSheet";
+import { ChevronDown, ChevronLeft, CheckCircle2, Upload, FileText } from "lucide-react";
 import type {
   Product,
   ChecklistItem,
@@ -381,6 +383,52 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
   );
 }
 
+// ─── Template button config ───────────────────────────────────────────────────
+
+const TEMPLATE_BUTTONS: {
+  type:        TemplateType;
+  name:        string;
+  description: string;
+  iconBg:      string;
+  iconColor:   string;
+}[] = [
+  {
+    type:        "allergen_statement",
+    name:        "Allergen Statement",
+    description: "EU 14 allergens · contains / may contain",
+    iconBg:      "#FEE2E2",
+    iconColor:   "#DC2626",
+  },
+  {
+    type:        "nutritional_declaration",
+    name:        "Nutritional Declaration",
+    description: "EU 1169/2011 Annex XV mandatory table",
+    iconBg:      "#FEF3C7",
+    iconColor:   "#D97706",
+  },
+  {
+    type:        "product_spec",
+    name:        "Product Specification",
+    description: "Formula, ingredients & nutrition overview",
+    iconBg:      "#DBEAFE",
+    iconColor:   "#2563EB",
+  },
+  {
+    type:        "traceability_report",
+    name:        "Traceability Report",
+    description: "Ingredient → supplier mapping",
+    iconBg:      "#DCFCE7",
+    iconColor:   "#16A34A",
+  },
+  {
+    type:        "haccp_summary",
+    name:        "HACCP Summary",
+    description: "Structured HACCP plan template",
+    iconBg:      "#F3E8FF",
+    iconColor:   "#7C3AED",
+  },
+];
+
 // ─── Doc type options ─────────────────────────────────────────────────────────
 
 const DOC_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
@@ -415,6 +463,11 @@ export default function ProductRecord({
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [uploadType, setUploadType]       = useState<DocumentType>("spec_sheet");
   const [uploadExpiry, setUploadExpiry]   = useState("");
+
+  // Template preview state
+  const [activeTemplate, setActiveTemplate] = useState<{ type: TemplateType; name: string } | null>(null);
+  const [autoSpecBanner, setAutoSpecBanner] = useState(false);
+  const autoSpecFired = useRef(false);
 
   // Optimistic toggle — update local state immediately, then call API
   const handleToggle = useCallback(async (item: ChecklistItem) => {
@@ -510,6 +563,47 @@ export default function ProductRecord({
       setDeletingDocId(null);
     }
   }, [product.id]);
+
+  // ─── Auto-generate product spec when all formula items are complete ──────────
+
+  useEffect(() => {
+    if (autoSpecFired.current) return;
+
+    const formulaItems = items.filter((i) => i.category === "formula");
+    if (formulaItems.length === 0) return;
+
+    const allDone = formulaItems.every((i) => i.completed);
+    if (!allDone) return;
+
+    const alreadyExists = documents.some((d) =>
+      d.name.toLowerCase().includes("product specification"),
+    );
+    if (alreadyExists) return;
+
+    autoSpecFired.current = true;
+
+    // Fire-and-forget: generate + save the product spec silently
+    (async () => {
+      try {
+        const genRes = await fetch(`/api/products/${product.id}/templates/product_spec`);
+        if (!genRes.ok) return;
+        const { html } = await genRes.json();
+
+        const saveRes = await fetch(`/api/products/${product.id}/templates/product_spec`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ html }),
+        });
+        if (!saveRes.ok) return;
+
+        const { document: newDoc } = await saveRes.json();
+        setDocuments((prev) => [newDoc, ...prev]);
+        setAutoSpecBanner(true);
+      } catch {
+        // Silent failure — non-blocking background operation
+      }
+    })();
+  }, [items, documents, product.id]);
 
   // ─── Next action button logic ────────────────────────────────────────────────
 
@@ -708,6 +802,137 @@ export default function ProductRecord({
             style={{ display: "none" }}
             onChange={handleFileChange}
           />
+
+          {/* Auto-spec banner */}
+          {autoSpecBanner && (
+            <div
+              style={{
+                backgroundColor: "#FFFBEB",
+                borderBottom:    "1px solid #FCD34D",
+                padding:         "10px 16px",
+                display:         "flex",
+                alignItems:      "center",
+                gap:             10,
+              }}
+            >
+              <p
+                style={{
+                  flex:       1,
+                  margin:     0,
+                  fontSize:   13,
+                  color:      "#92400E",
+                  fontFamily: "var(--font-body), DM Sans, sans-serif",
+                  fontWeight: 500,
+                }}
+              >
+                Your product spec has been pre-filled and saved to Documents.
+              </p>
+              <button
+                onClick={() => setAutoSpecBanner(false)}
+                style={{
+                  background: "none",
+                  border:     "none",
+                  padding:    0,
+                  cursor:     "pointer",
+                  color:      "#92400E",
+                  fontSize:   18,
+                  lineHeight: 1,
+                  flexShrink: 0,
+                }}
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* Generate templates section */}
+          <div
+            style={{
+              backgroundColor: "white",
+              borderBottom:    "1px solid #E2E8F0",
+              padding:         "16px 16px 20px",
+            }}
+          >
+            <p
+              style={{
+                margin:        "0 0 12px",
+                fontSize:      11,
+                fontWeight:    700,
+                color:         "#64748B",
+                fontFamily:    "var(--font-body), DM Sans, sans-serif",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+              }}
+            >
+              Generate Templates
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {TEMPLATE_BUTTONS.map((tpl) => (
+                <button
+                  key={tpl.type}
+                  onClick={() => setActiveTemplate({ type: tpl.type, name: tpl.name })}
+                  style={{
+                    display:         "flex",
+                    alignItems:      "center",
+                    gap:             10,
+                    width:           "100%",
+                    padding:         "10px 12px",
+                    borderRadius:    8,
+                    border:          "1px solid #E2E8F0",
+                    backgroundColor: "#F8FAFC",
+                    cursor:          "pointer",
+                    textAlign:       "left",
+                  }}
+                >
+                  <div
+                    style={{
+                      width:           28,
+                      height:          28,
+                      borderRadius:    6,
+                      backgroundColor: tpl.iconBg,
+                      display:         "flex",
+                      alignItems:      "center",
+                      justifyContent:  "center",
+                      flexShrink:      0,
+                    }}
+                  >
+                    <FileText size={14} color={tpl.iconColor} />
+                  </div>
+                  <div style={{ flex: 1, overflow: "hidden" }}>
+                    <p
+                      style={{
+                        margin:       0,
+                        fontSize:     13,
+                        fontWeight:   600,
+                        color:        "#1E293B",
+                        fontFamily:   "var(--font-body), DM Sans, sans-serif",
+                        overflow:     "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace:   "nowrap",
+                      }}
+                    >
+                      {tpl.name}
+                    </p>
+                    <p
+                      style={{
+                        margin:       0,
+                        fontSize:     11,
+                        color:        "#94A3B8",
+                        fontFamily:   "var(--font-body), DM Sans, sans-serif",
+                        overflow:     "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace:   "nowrap",
+                      }}
+                    >
+                      {tpl.description}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Upload form */}
           {showUploadForm && (
@@ -987,6 +1212,20 @@ export default function ProductRecord({
             </p>
           </div>
         </div>
+      )}
+
+      {/* ── Template preview sheet ──────────────────────────────────── */}
+      {activeTemplate && (
+        <TemplatePreviewSheet
+          productId={product.id}
+          templateType={activeTemplate.type}
+          templateName={activeTemplate.name}
+          onClose={() => setActiveTemplate(null)}
+          onSaved={(doc) => {
+            setDocuments((prev) => [doc, ...prev]);
+            setActiveTemplate(null);
+          }}
+        />
       )}
 
       {/* ── Audit Log tab ───────────────────────────────────────────── */}
