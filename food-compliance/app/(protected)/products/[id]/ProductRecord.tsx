@@ -18,10 +18,12 @@ import type {
   ChecklistCategory,
   ScoreResult,
   DocumentType,
+  Packaging,
 } from "@/types/database";
 import type { IngredientWithSupplier } from "@/app/api/ingredients/route";
 import SupplyChainHealth, { computeHealth } from "@/components/ui/SupplyChainHealth";
 import { calculateScore } from "@/lib/score/calculateScore";
+import PackagingTab from "./PackagingTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,9 +34,11 @@ interface ProductRecordProps {
   initialScore:       ScoreResult;
   initialDocuments:   DocumentWithUrl[];
   supplyIngredients?: IngredientWithSupplier[];
+  initialPackaging?:  Packaging | null;
+  labelArtworkDocs?:  DocumentWithUrl[];
 }
 
-type Tab = "overview" | "documents" | "supply" | "audit";
+type Tab = "overview" | "documents" | "supply" | "packaging" | "audit";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -347,6 +351,7 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
     { key: "overview",  label: "Overview" },
     { key: "documents", label: "Documents" },
     { key: "supply",    label: "Supply Chain" },
+    { key: "packaging", label: "Packaging" },
     { key: "audit",     label: "Audit Log" },
   ];
 
@@ -450,7 +455,9 @@ export default function ProductRecord({
   auditLog,
   initialScore,
   initialDocuments,
-  supplyIngredients = [],
+  supplyIngredients  = [],
+  initialPackaging   = null,
+  labelArtworkDocs   = [],
 }: ProductRecordProps) {
   const router    = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -773,6 +780,53 @@ export default function ProductRecord({
               {nextActionLabel}
             </button>
           </div>
+
+          {/* Packaging summary card — shown when primary material is set */}
+          {initialPackaging?.primary_material && (
+            <div style={{ padding: "0 16px 4px" }}>
+              <button
+                onClick={() => setTab("packaging")}
+                style={{
+                  width:           "100%",
+                  background:      "none",
+                  border:          "1px solid #E2E8F0",
+                  borderRadius:    12,
+                  padding:         "12px 14px",
+                  cursor:          "pointer",
+                  textAlign:       "left",
+                  backgroundColor: "white",
+                }}
+              >
+                {/* Row 1: material + recyclability chip */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 16 }}>📦</span>
+                  <p style={{ flex: 1, margin: 0, fontSize: 13, fontWeight: 600, color: "#1E293B", fontFamily: "var(--font-body), DM Sans, sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {initialPackaging.primary_material}
+                  </p>
+                  {initialPackaging.recyclability_code && (
+                    <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 20, backgroundColor: "#DBEAFE", color: "#1D4ED8", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>
+                      {initialPackaging.recyclability_code}
+                    </span>
+                  )}
+                </div>
+
+                {/* Row 2: PPWR badge + barcode */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {initialPackaging.ppwr_compliant === true  && <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 20, backgroundColor: "#F0FDF4", color: "#16A34A", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>PPWR ✓</span>}
+                  {initialPackaging.ppwr_compliant === false && <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 20, backgroundColor: "#FEF2F2", color: "#DC2626", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>PPWR ✗</span>}
+                  {initialPackaging.ppwr_compliant === null  && <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 20, backgroundColor: "#F8FAFC", color: "#64748B", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>PPWR ?</span>}
+                  {initialPackaging.barcode && (
+                    <span style={{ fontSize: 11, color: "#64748B", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>
+                      {initialPackaging.barcode_type}: {initialPackaging.barcode}
+                    </span>
+                  )}
+                  <span style={{ marginLeft: "auto", fontSize: 12, color: "#2563EB", fontFamily: "var(--font-body), DM Sans, sans-serif", fontWeight: 600 }}>
+                    Edit →
+                  </span>
+                </div>
+              </button>
+            </div>
+          )}
 
           {/* Category progress bars */}
           <div style={{ padding: "8px 0 16px" }}>
@@ -1244,6 +1298,16 @@ export default function ProductRecord({
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Packaging tab ───────────────────────────────────────────── */}
+      {tab === "packaging" && (
+        <PackagingTab
+          productId={product.id}
+          initialPackaging={initialPackaging}
+          labelArtworkDocs={labelArtworkDocs}
+          onScoreChange={setScore}
+        />
       )}
 
       {/* ── Template preview sheet ──────────────────────────────────── */}

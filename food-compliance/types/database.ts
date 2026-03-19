@@ -13,6 +13,7 @@ export type DocumentType =
   | "lab_report"
   | "certificate"
   | "declaration"
+  | "label_artwork"
   | "other";
 
 export type ChecklistCategory =
@@ -177,6 +178,32 @@ export interface SupplyChainEvent {
   resolved_at:             string | null;
 }
 
+// ─── Packaging ────────────────────────────────────────────────────────────────
+
+export type BarcodeType = "EAN-13" | "EAN-8" | "QR code";
+
+export interface Packaging {
+  id:                  string;
+  product_id:          string;
+  // Section 1: Primary
+  primary_material:    string | null;
+  weight_primary_g:    number | null;
+  recyclability_code:  string | null;
+  // Section 2: Secondary
+  secondary_material:  string | null;
+  weight_secondary_g:  number | null;
+  // Section 3: PPWR
+  ppwr_compliant:      boolean | null;    // true=Yes, false=No, null=Not sure
+  recycled_content_pct: number | null;
+  // Section 4: Label & Barcode
+  label_dimensions:    string | null;
+  label_document_id:   string | null;
+  barcode:             string | null;
+  barcode_type:        BarcodeType;
+  created_at:          string;
+  updated_at:          string;
+}
+
 // ─── Document ─────────────────────────────────────────────────────────────────
 
 export interface Document {
@@ -300,6 +327,11 @@ export interface Database {
         Insert: Omit<SupplyChainEvent, "id" | "created_at">;
         Update: Pick<SupplyChainEvent, "resolved_at">;  // only resolvable
       };
+      packaging: {
+        Row:    Packaging;
+        Insert: Omit<Packaging, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<Packaging, "id" | "created_at">>;
+      };
       documents: {
         Row:    Document;
         Insert: Omit<Document, "id" | "created_at" | "updated_at">;
@@ -327,6 +359,7 @@ export interface Database {
       product_status:     ProductStatus;
       document_type:      DocumentType;
       checklist_category: ChecklistCategory;
+      barcode_type:       BarcodeType;
     };
   };
 }

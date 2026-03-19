@@ -4,7 +4,7 @@ import AppShell from "@/components/layout/AppShell";
 import ProductRecord from "./ProductRecord";
 import { createClient } from "@/lib/supabase/server";
 import { calculateScore } from "@/lib/score/calculateScore";
-import type { Product, ChecklistItem, AuditLog, Document } from "@/types/database";
+import type { Product, ChecklistItem, AuditLog, Document, Packaging } from "@/types/database";
 import type { IngredientWithSupplier } from "@/app/api/ingredients/route";
 import type { DocumentWithUrl } from "@/components/ui/DocumentRow";
 
@@ -146,6 +146,32 @@ export default async function ProductPage({ params }: Props) {
     }
   }
 
+  // Fetch packaging record
+  const { data: packagingRaw } = await supabaseAny
+    .from("packaging")
+    .select("*")
+    .eq("product_id", params.id)
+    .maybeSingle();
+  const initialPackaging = (packagingRaw ?? null) as Packaging | null;
+
+  // Fetch label_artwork documents with signed URLs
+  const { data: labelDocsRaw } = await supabase
+    .from("documents")
+    .select("*")
+    .eq("product_id", params.id)
+    .eq("type", "label_artwork")
+    .order("created_at", { ascending: false });
+
+  const labelDocRecords = (labelDocsRaw ?? []) as unknown as Document[];
+  const labelArtworkDocs: DocumentWithUrl[] = await Promise.all(
+    labelDocRecords.map(async (doc) => {
+      const { data: urlData } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(doc.storage_path, 3600);
+      return { ...doc, signed_url: urlData?.signedUrl ?? null };
+    }),
+  );
+
   return (
     <AppShell activeTab="products">
       <ProductRecord
@@ -155,6 +181,8 @@ export default async function ProductPage({ params }: Props) {
         initialScore={initialScore}
         initialDocuments={initialDocuments}
         supplyIngredients={supplyIngredients}
+        initialPackaging={initialPackaging}
+        labelArtworkDocs={labelArtworkDocs}
       />
     </AppShell>
   );
