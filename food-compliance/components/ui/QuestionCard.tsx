@@ -227,7 +227,7 @@ export default function QuestionCard({
             borderRadius: 12,
             border:      "none",
             fontSize:    16,
-            fontWeight:  800,
+            fontWeight:  700,
             fontFamily:  "var(--font-display), Outfit, sans-serif",
             letterSpacing: "0.01em",
             transition:  "all 0.15s ease",

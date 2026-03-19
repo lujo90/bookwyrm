@@ -174,8 +174,8 @@ export default function TaskRow({
             aria-expanded={expanded}
             style={{
               flexShrink:     0,
-              width:          32,
-              height:         32,
+              minWidth:       44,
+              minHeight:      44,
               display:        "flex",
               alignItems:     "center",
               justifyContent: "center",

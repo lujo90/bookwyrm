@@ -1,15 +1,24 @@
 import type { Metadata } from "next";
+import { Outfit, DM_Sans } from "next/font/google";
 import "./globals.css";
 
-/*
- * Fonts are loaded via CSS variable fallbacks defined in globals.css.
- * When the build environment has internet access, replace this with
- * next/font/google imports for Outfit (700, 800) and DM Sans (400–700).
- */
+const outfit = Outfit({
+  subsets:  ["latin"],
+  weight:   ["700", "800"],
+  variable: "--font-display",
+  display:  "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets:  ["latin"],
+  weight:   ["400", "500", "600", "700"],
+  variable: "--font-body",
+  display:  "swap",
+});
 
 export const metadata: Metadata = {
   title: {
-    default: "FoodComply",
+    default:  "FoodComply",
     template: "%s | FoodComply",
   },
   description:
@@ -22,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${outfit.variable} ${dmSans.variable}`}>
       <body>{children}</body>
     </html>
   );
