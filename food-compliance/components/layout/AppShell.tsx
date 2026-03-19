@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { LayoutGrid, Box, Settings } from "lucide-react";
 import AgentBar from "@/components/layout/AgentBar";
+import TrialBanner from "@/components/ui/TrialBanner";
 
 export type AppTab = "dashboard" | "products" | "settings";
 
@@ -85,6 +86,7 @@ export default function AppShell({
           overflowY:     "auto",
         }}
       >
+        <TrialBanner />
         {children}
       </main>
 

@@ -19,7 +19,8 @@
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.2",
     "@radix-ui/react-popover": "^1.1.2",
-    "@radix-ui/react-slot": "^1.1.0"
+    "@radix-ui/react-slot": "^1.1.0",
+    "stripe": "^16.0.0"
   },
   "devDependencies": {
     "typescript": "^5",

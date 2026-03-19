@@ -50,14 +50,20 @@ export interface ScoreResult {
 // ─── Organisation ─────────────────────────────────────────────────────────────
 
 export interface Organisation {
-  id:                string;
-  name:              string;
-  slug:              string;
-  country_code:      string;              // ISO 3166-1 alpha-2, e.g. "DE"
-  subscription_tier: "free" | "starter" | "pro" | "enterprise";
-  stripe_customer_id: string | null;
-  created_at:        string;
-  updated_at:        string;
+  id:                     string;
+  name:                   string;
+  slug:                   string;
+  country_code:           string;              // ISO 3166-1 alpha-2, e.g. "DE"
+  subscription_tier:      "free" | "starter" | "pro" | "enterprise";
+  stripe_customer_id:     string | null;
+  // Billing (Phase 14)
+  stripe_subscription_id: string | null;
+  trial_ends_at:          string | null;       // ISO timestamptz
+  subscription_status:    string;              // 'trial' | 'active' | 'cancelled' | 'past_due'
+  plan:                   string;              // 'trial' | 'pro'
+  sku_limit:              number;
+  created_at:             string;
+  updated_at:             string;
 }
 
 // ─── Profile ──────────────────────────────────────────────────────────────────

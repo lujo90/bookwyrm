@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
+import BillingPortalButton from "@/components/ui/BillingPortalButton";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -30,6 +31,28 @@ export default function SettingsPage() {
           <p style={{ fontSize: 13, color: "#64748B", fontFamily: "var(--font-body), DM Sans, sans-serif", margin: 0 }}>
             Account and organisation settings.
           </p>
+        </div>
+
+        {/* Billing section */}
+        <div style={{ padding: "0 16px 10px" }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: "#64748B", fontFamily: "var(--font-body), DM Sans, sans-serif", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Billing
+          </p>
+        </div>
+
+        <div style={{ backgroundColor: "white", borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0", marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px" }}>
+            <span style={{ fontSize: 22, flexShrink: 0, lineHeight: 1 }}>💳</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: "0 0 2px", fontSize: 14, fontWeight: 600, color: "#1E293B", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>
+                Billing
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: "#64748B", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>
+                Manage your subscription and payment method.
+              </p>
+            </div>
+            <BillingPortalButton />
+          </div>
         </div>
 
         {/* Supply Chain section */}
