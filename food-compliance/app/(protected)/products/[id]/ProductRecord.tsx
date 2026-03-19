@@ -19,6 +19,7 @@ import type {
   ScoreResult,
   DocumentType,
   Packaging,
+  Review,
 } from "@/types/database";
 import type { IngredientWithSupplier } from "@/app/api/ingredients/route";
 import SupplyChainHealth, { computeHealth } from "@/components/ui/SupplyChainHealth";
@@ -37,6 +38,7 @@ interface ProductRecordProps {
   supplyIngredients?: IngredientWithSupplier[];
   initialPackaging?:  Packaging | null;
   labelArtworkDocs?:  DocumentWithUrl[];
+  activeReview?:      Review | null;
 }
 
 type Tab = "overview" | "documents" | "supply" | "packaging" | "audit";
@@ -459,6 +461,7 @@ export default function ProductRecord({
   supplyIngredients  = [],
   initialPackaging   = null,
   labelArtworkDocs   = [],
+  activeReview       = null,
 }: ProductRecordProps) {
   const router    = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -634,6 +637,13 @@ export default function ProductRecord({
       ? "Start review"
       : "Continue your checklist";
 
+  // Navigate to review page when button says "Start review"
+  const handleNextAction = () => {
+    if (!nextBlockingItem && score.total >= 75) {
+      router.push(`/products/${product.id}/review`);
+    }
+  };
+
   return (
     <div style={{ backgroundColor: "#F8FAFC", minHeight: "100%" }}>
 
@@ -773,6 +783,7 @@ export default function ProductRecord({
           {/* Next action button */}
           <div style={{ padding: "16px 16px 8px" }}>
             <button
+              onClick={handleNextAction}
               style={{
                 width:           "100%",
                 height:          52,
@@ -793,6 +804,115 @@ export default function ProductRecord({
               {nextActionLabel}
             </button>
           </div>
+
+          {/* Review card — shown when score >= 75 and no active review */}
+          {score.total >= 75 && !activeReview && (
+            <div style={{ padding: "0 16px 8px" }}>
+              <div
+                style={{
+                  backgroundColor: "#EFF6FF",
+                  border:          "1.5px solid #BFDBFE",
+                  borderRadius:    14,
+                  padding:         "20px 16px",
+                  display:         "flex",
+                  flexDirection:   "column",
+                  gap:             10,
+                }}
+              >
+                <div>
+                  <p
+                    style={{
+                      fontSize:   17,
+                      fontWeight: 700,
+                      color:      "#1D4ED8",
+                      fontFamily: "var(--font-display), Outfit, sans-serif",
+                      margin:     "0 0 4px",
+                    }}
+                  >
+                    Your product is nearly ready.
+                  </p>
+                  <p
+                    style={{
+                      fontSize:   13,
+                      color:      "#3B82F6",
+                      fontFamily: "var(--font-body), DM Sans, sans-serif",
+                      margin:     0,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Let us check everything together. This takes about 5 minutes.
+                  </p>
+                </div>
+                <button
+                  onClick={() => router.push(`/products/${product.id}/review`)}
+                  style={{
+                    width:           "100%",
+                    height:          48,
+                    backgroundColor: "#2563EB",
+                    color:           "white",
+                    border:          "none",
+                    borderRadius:    10,
+                    fontSize:        15,
+                    fontWeight:      800,
+                    fontFamily:      "var(--font-display), Outfit, sans-serif",
+                    cursor:          "pointer",
+                  }}
+                >
+                  Start Review
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Resume Review banner — shown when a review is in_progress */}
+          {activeReview && (
+            <div style={{ padding: "0 16px 8px" }}>
+              <div
+                style={{
+                  backgroundColor: "#FFFBEB",
+                  border:          "1.5px solid #FDE68A",
+                  borderRadius:    12,
+                  padding:         "12px 14px",
+                  display:         "flex",
+                  alignItems:      "center",
+                  justifyContent:  "space-between",
+                  gap:             12,
+                }}
+              >
+                <p
+                  style={{
+                    fontSize:   13,
+                    fontWeight: 600,
+                    color:      "#92400E",
+                    fontFamily: "var(--font-body), DM Sans, sans-serif",
+                    margin:     0,
+                    flex:       1,
+                  }}
+                >
+                  Review in progress — step {(activeReview.current_step ?? 0) + 1} of {activeReview.total_steps ?? "?"}
+                </p>
+                <button
+                  onClick={() => router.push(`/products/${product.id}/review`)}
+                  style={{
+                    flexShrink:      0,
+                    height:          36,
+                    padding:         "0 14px",
+                    backgroundColor: "#F59E0B",
+                    color:           "white",
+                    border:          "none",
+                    borderRadius:    8,
+                    fontSize:        13,
+                    fontWeight:      700,
+                    fontFamily:      "var(--font-body), DM Sans, sans-serif",
+                    cursor:          "pointer",
+                    whiteSpace:      "nowrap",
+                  }}
+                >
+                  Resume Review →
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Packaging summary card — shown when primary material is set */}
           {initialPackaging?.primary_material && (

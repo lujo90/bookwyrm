@@ -272,6 +272,33 @@ export interface AuditLog {
   created_at:      string;               // immutable
 }
 
+// ─── Review ───────────────────────────────────────────────────────────────────
+
+export interface Review {
+  id:           string;
+  product_id:   string;
+  status:       string;               // 'in_progress' | 'completed'
+  started_at:   string;
+  completed_at: string | null;
+  completed_by: string | null;
+  current_step: number;
+  total_steps:  number | null;
+  created_at:   string;
+}
+
+export interface ReviewConfirmation {
+  id:           string;
+  review_id:    string;
+  step:         number;
+  item_type:    string;
+  item_id:      string | null;
+  question:     string;
+  confirmed:    boolean;
+  confirmed_at: string;
+  confirmed_by: string;
+  note:         string | null;
+}
+
 // ─── Regulation ───────────────────────────────────────────────────────────────
 // Reference table of EU food regulations (used when generating checklist items).
 
@@ -351,6 +378,16 @@ export interface Database {
         Row:    AuditLog;
         Insert: Omit<AuditLog, "id" | "created_at">;
         Update: Record<string, never>;    // audit log is immutable — no valid update keys
+      };
+      reviews: {
+        Row:    Review;
+        Insert: Omit<Review, "id" | "created_at" | "started_at">;
+        Update: Partial<Omit<Review, "id" | "created_at">>;
+      };
+      review_confirmations: {
+        Row:    ReviewConfirmation;
+        Insert: Omit<ReviewConfirmation, "id" | "confirmed_at">;
+        Update: Record<string, never>;    // confirmations are immutable
       };
     };
     Views:     Record<string, never>;

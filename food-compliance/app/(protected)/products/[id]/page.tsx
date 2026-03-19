@@ -4,7 +4,7 @@ import AppShell from "@/components/layout/AppShell";
 import ProductRecord from "./ProductRecord";
 import { createClient } from "@/lib/supabase/server";
 import { calculateScore } from "@/lib/score/calculateScore";
-import type { Product, ChecklistItem, AuditLog, Document, Packaging } from "@/types/database";
+import type { Product, ChecklistItem, AuditLog, Document, Packaging, Review } from "@/types/database";
 import type { IngredientWithSupplier } from "@/app/api/ingredients/route";
 import type { DocumentWithUrl } from "@/components/ui/DocumentRow";
 
@@ -154,6 +154,17 @@ export default async function ProductPage({ params }: Props) {
     .maybeSingle();
   const initialPackaging = (packagingRaw ?? null) as Packaging | null;
 
+  // Fetch active review (in_progress) for the Resume Review banner
+  const { data: reviewRaw } = await supabaseAny
+    .from("reviews")
+    .select("*")
+    .eq("product_id", params.id)
+    .eq("status", "in_progress")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const activeReview = (reviewRaw ?? null) as Review | null;
+
   // Fetch label_artwork documents with signed URLs
   const { data: labelDocsRaw } = await supabase
     .from("documents")
@@ -183,6 +194,7 @@ export default async function ProductPage({ params }: Props) {
         supplyIngredients={supplyIngredients}
         initialPackaging={initialPackaging}
         labelArtworkDocs={labelArtworkDocs}
+        activeReview={activeReview}
       />
     </AppShell>
   );
