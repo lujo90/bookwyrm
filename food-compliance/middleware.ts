@@ -34,6 +34,11 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Skip auth entirely for public paths (avoids Supabase client errors in dev)
+  if (isPublicPath(pathname)) {
+    return NextResponse.next();
+  }
+
   // Always refresh the Supabase session cookie
   const { supabaseResponse, user } = await updateSession(request);
 
