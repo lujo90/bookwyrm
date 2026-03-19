@@ -2,9 +2,16 @@
 -- Adds label_artwork to the document_type enum, then creates the packaging
 -- table (one row per product, enforced via UNIQUE on product_id).
 
--- ─── Extend document_type enum ────────────────────────────────────────────────
+-- ─── Extend documents.type CHECK constraint to include label_artwork ──────────
+-- The documents.type column uses a text CHECK constraint (not a PostgreSQL enum),
+-- so we must drop the old constraint and add a new one.
 
-ALTER TYPE document_type ADD VALUE IF NOT EXISTS 'label_artwork';
+ALTER TABLE documents
+  DROP CONSTRAINT IF EXISTS documents_type_check;
+
+ALTER TABLE documents
+  ADD CONSTRAINT documents_type_check
+  CHECK (type IN ('spec_sheet', 'lab_report', 'certificate', 'declaration', 'label_artwork', 'other'));
 
 -- ─── packaging ────────────────────────────────────────────────────────────────
 

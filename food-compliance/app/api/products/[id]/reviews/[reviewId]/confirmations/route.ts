@@ -25,22 +25,25 @@ export async function POST(
   const actorEmail     = (profile as any).email as string;
   const organisationId = (profile as any).organisation_id as string;
 
-  const body = await req.json();
-  const {
-    step,
-    item_type,
-    item_id,
-    question,
-    confirmed,
-    note,
-  }: {
+  let body: {
     step:      number;
     item_type: string;
     item_id?:  string | null;
     question:  string;
     confirmed: boolean;
     note?:     string | null;
-  } = body;
+  };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { step, item_type, item_id, question, confirmed, note } = body;
+
+  if (typeof step !== "number" || typeof item_type !== "string" || typeof question !== "string" || typeof confirmed !== "boolean") {
+    return NextResponse.json({ error: "Missing required fields: step, item_type, question, confirmed" }, { status: 400 });
+  }
 
   // Insert review_confirmation row
   const { data: confirmation, error: confError } = await db

@@ -41,7 +41,9 @@ export default function ComplianceAnchor({
           style={{
             display:        "inline-flex",
             alignItems:     "center",
-            padding:        "3px 8px",
+            justifyContent: "center",
+            minHeight:      44,
+            padding:        "0 8px",
             borderRadius:   20,
             fontSize:       10,
             fontWeight:     600,
@@ -54,9 +56,19 @@ export default function ComplianceAnchor({
             cursor:         "pointer",
             whiteSpace:     "nowrap",
             lineHeight:     1.4,
+            background:     "none",
           }}
         >
-          {code}
+          <span style={{
+            display:         "inline-flex",
+            alignItems:      "center",
+            padding:         "3px 8px",
+            borderRadius:    20,
+            backgroundColor: "#EFF6FF",
+            border:          "1px solid #BFDBFE",
+          }}>
+            {code}
+          </span>
         </button>
       </Popover.Trigger>
 
@@ -71,7 +83,21 @@ export default function ComplianceAnchor({
           {/* Close */}
           <Popover.Close
             aria-label="Close"
-            className="absolute top-3 right-3 text-pale hover:text-mid transition-colors"
+            style={{
+              position:       "absolute",
+              top:            0,
+              right:          0,
+              minWidth:       44,
+              minHeight:      44,
+              display:        "flex",
+              alignItems:     "center",
+              justifyContent: "center",
+              background:     "none",
+              border:         "none",
+              cursor:         "pointer",
+              color:          "#94A3B8",
+              borderRadius:   "0 12px 0 0",
+            }}
           >
             <X size={14} />
           </Popover.Close>

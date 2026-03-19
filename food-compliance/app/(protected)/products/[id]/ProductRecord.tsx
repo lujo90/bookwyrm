@@ -218,8 +218,8 @@ function ChecklistRow({
             aria-label={expanded ? "Collapse" : "Expand"}
             style={{
               flexShrink:     0,
-              width:          32,
-              height:         32,
+              minWidth:       44,
+              minHeight:      44,
               display:        "flex",
               alignItems:     "center",
               justifyContent: "center",

@@ -207,15 +207,18 @@ export default function TemplatePreviewSheet({
             onClick={onClose}
             aria-label="Close"
             style={{
-              background:    "none",
-              border:        "none",
-              padding:       6,
-              cursor:        "pointer",
-              color:         "#64748B",
-              display:       "flex",
-              alignItems:    "center",
-              borderRadius:  6,
-              flexShrink:    0,
+              background:     "none",
+              border:         "none",
+              padding:        0,
+              cursor:         "pointer",
+              color:          "#64748B",
+              display:        "flex",
+              alignItems:     "center",
+              justifyContent: "center",
+              borderRadius:   6,
+              flexShrink:     0,
+              minWidth:       44,
+              minHeight:      44,
             }}
           >
             <X size={20} />

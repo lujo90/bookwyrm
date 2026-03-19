@@ -82,11 +82,14 @@ export default async function ReviewPage({ params }: Props) {
   const haccpDoc         = docs.find((d) => d.type === "spec_sheet") ?? null;
   const certDocs         = docs.filter((d) => d.type === "certificate");
 
-  // Suppliers
-  const { data: supplierIngRaw } = await db
-    .from("ingredients")
-    .select("supplier_id")
-    .not("supplier_id", "is", null);
+  // Suppliers — scoped to this product's active formula only
+  const { data: supplierIngRaw } = formula?.id
+    ? await db
+        .from("ingredients")
+        .select("supplier_id")
+        .eq("formula_id", formula.id)
+        .not("supplier_id", "is", null)
+    : { data: [] };
   const supplierIds = [...new Set(
     (supplierIngRaw ?? []).map((i: any) => i.supplier_id as string),
   )];
