@@ -28,13 +28,14 @@ const TYPE_CONFIG: Record<DocumentType, {
   label: string;
   bg:    string;
   text:  string;
-  Icon:  React.ComponentType<{ size: number; color: string }>;
+  Icon:  React.ComponentType<{ size?: number | string; color?: string; [key: string]: unknown }>;
 }> = {
   spec_sheet:  { label: "Spec Sheet",   bg: "#EFF6FF", text: "#2563EB", Icon: FileText    },
   lab_report:  { label: "Lab Report",   bg: "#FFF7ED", text: "#D97706", Icon: TestTube2   },
   certificate: { label: "Certificate",  bg: "#F0FDF4", text: "#16A34A", Icon: Award       },
-  declaration: { label: "Declaration",  bg: "#F5F3FF", text: "#7C3AED", Icon: FileCheck   },
-  other:       { label: "Document",     bg: "#F1F5F9", text: "#475569", Icon: File        },
+  declaration:  { label: "Declaration",    bg: "#F5F3FF", text: "#7C3AED", Icon: FileCheck   },
+  label_artwork:{ label: "Label Artwork",  bg: "#FFF1F2", text: "#E11D48", Icon: File        },
+  other:        { label: "Document",       bg: "#F1F5F9", text: "#475569", Icon: File        },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

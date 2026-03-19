@@ -3,7 +3,6 @@ export interface AccessResult {
   reason:  "ok" | "trial_expired" | "trial_limit" | "plan_limit" | "subscription_inactive";
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function canCreateProduct(db: any, organisationId: string): Promise<AccessResult> {
   const { data: org, error } = await db
     .from("organisations")

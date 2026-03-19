@@ -22,7 +22,6 @@ import type { ChecklistItem } from "@/types/database";
 // Must match the seed data / checklist generation logic.
 const SUPPLIER_CHECKLIST_TITLE = "Link all ingredients to approved suppliers";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyClient = any;
 
 export interface CascadeResult {

@@ -60,7 +60,6 @@ export default function IngredientRow({ ingredient, onClick }: IngredientRowProp
         borderBottom:    "1px solid #E2E8F0",
         padding:         "12px 16px",
         border:          "none",
-        borderBottom:    "1px solid #E2E8F0",
         textAlign:       "left",
         cursor:          "pointer",
       }}

@@ -1423,7 +1423,7 @@ export default function ProductRecord({
               <div style={{ padding: "12px 16px" }}>
                 <a
                   href="/ingredients"
-                  style={{ display: "block", width: "100%", height: 44, borderRadius: 8, border: "1px solid #DBEAFE", backgroundColor: "#EFF6FF", color: "#2563EB", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-body), DM Sans, sans-serif", cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 44, borderRadius: 8, border: "1px solid #DBEAFE", backgroundColor: "#EFF6FF", color: "#2563EB", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-body), DM Sans, sans-serif", cursor: "pointer", textDecoration: "none" }}
                 >
                   Open Ingredients Library →
                 </a>

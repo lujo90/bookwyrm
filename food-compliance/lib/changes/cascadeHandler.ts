@@ -16,7 +16,6 @@
 import { calculateScore } from "@/lib/score/calculateScore";
 import type { ChecklistItem, ScoreResult, ScoreBreakdown } from "@/types/database";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyClient = any;
 
 // ─── Return type ──────────────────────────────────────────────────────────────

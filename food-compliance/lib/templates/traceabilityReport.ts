@@ -51,13 +51,13 @@ export function generateTraceabilityReport(input: TraceabilityReportInput): stri
     ? sortedIngredients.map((ing) => {
         const supplier = ing.supplier_id ? supplierMap.get(ing.supplier_id) : null;
         const supplierCell = supplier
-          ? `${supplier.name}${supplier.country_code ? ` (${supplier.country_code})` : ""}`
+          ? `${supplier.name}${supplier.country ? ` (${supplier.country})` : ""}`
           : `<span class="no-supplier">Not assigned</span>`;
         const contactCell = supplier?.contact_email
           ? `<a href="mailto:${supplier.contact_email}" style="color:#2563EB">${supplier.contact_email}</a>`
           : "—";
-        const certBadges = supplier?.certification_codes?.length
-          ? supplier.certification_codes.map((c) => `<span class="badge badge-cert">${c}</span>`).join("")
+        const certBadges = supplier?.certifications?.length
+          ? supplier.certifications.map((c) => `<span class="badge badge-cert">${c}</span>`).join("")
           : "—";
         const allergenCodes = ing.allergen_codes.length
           ? ing.allergen_codes.join(", ")
@@ -91,9 +91,9 @@ export function generateTraceabilityReport(input: TraceabilityReportInput): stri
         return `
           <tr>
             <td><strong>${s.name}</strong></td>
-            <td>${s.country_code ?? "—"}</td>
+            <td>${s.country ?? "—"}</td>
             <td>${s.contact_email ?? "—"}</td>
-            <td>${s.certification_codes?.join(", ") || "—"}</td>
+            <td>${s.certifications?.join(", ") || "—"}</td>
             <td>${suppliedIngredients}</td>
           </tr>`;
       }).join("")
