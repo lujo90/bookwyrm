@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutGrid, Box, Settings } from "lucide-react";
+import { LayoutGrid, Box, Settings, Bot } from "lucide-react";
 import AgentBar from "@/components/layout/AgentBar";
 import TrialBanner from "@/components/ui/TrialBanner";
 
-export type AppTab = "dashboard" | "products" | "settings";
+export type AppTab = "dashboard" | "products" | "agent" | "settings";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -24,6 +24,7 @@ const NAV_ITEMS: {
 }[] = [
   { tab: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutGrid },
   { tab: "products",  label: "Products",  href: "/products",  icon: Box        },
+  { tab: "agent",     label: "Agent",     href: "/agent",     icon: Bot        },
   { tab: "settings",  label: "Settings",  href: "/settings",  icon: Settings   },
 ];
 
