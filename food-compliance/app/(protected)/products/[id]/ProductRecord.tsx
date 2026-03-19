@@ -24,6 +24,7 @@ import type { IngredientWithSupplier } from "@/app/api/ingredients/route";
 import SupplyChainHealth, { computeHealth } from "@/components/ui/SupplyChainHealth";
 import { calculateScore } from "@/lib/score/calculateScore";
 import PackagingTab from "./PackagingTab";
+import ChangeAlert from "@/components/ui/ChangeAlert";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -462,10 +463,11 @@ export default function ProductRecord({
   const router    = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const [tab, setTab]               = useState<Tab>("overview");
-  const [items, setItems]           = useState<ChecklistItem[]>(initialItems);
-  const [score, setScore]           = useState<ScoreResult>(initialScore);
-  const [loadingId, setLoadingId]   = useState<string | null>(null);
+  const [tab, setTab]                         = useState<Tab>("overview");
+  const [items, setItems]                     = useState<ChecklistItem[]>(initialItems);
+  const [score, setScore]                     = useState<ScoreResult>(initialScore);
+  const [loadingId, setLoadingId]             = useState<string | null>(null);
+  const [cascadeNotifications, setCascadeNotifications] = useState<string[]>([]);
 
   // Documents state
   const [documents, setDocuments]         = useState<DocumentWithUrl[]>(initialDocuments);
@@ -542,10 +544,13 @@ export default function ProductRecord({
         body:   form,
       });
       if (!res.ok) throw new Error("Upload failed");
-      const { document: newDoc } = await res.json();
+      const { document: newDoc, cascade } = await res.json();
       setDocuments((prev) => [newDoc, ...prev]);
       setShowUploadForm(false);
       setUploadExpiry("");
+      if (cascade?.notifications?.length) {
+        setCascadeNotifications((prev) => [...prev, ...cascade.notifications]);
+      }
     } catch {
       // Leave form open so the user can retry
     } finally {
@@ -679,6 +684,14 @@ export default function ProductRecord({
 
         <TabBar active={tab} onChange={setTab} />
       </div>
+
+      {/* ── Change alert banner ──────────────────────────────────────── */}
+      {cascadeNotifications.length > 0 && (
+        <ChangeAlert
+          notifications={cascadeNotifications}
+          onDismiss={() => setCascadeNotifications([])}
+        />
+      )}
 
       {/* ── Overview tab ────────────────────────────────────────────── */}
       {tab === "overview" && (
@@ -1306,7 +1319,9 @@ export default function ProductRecord({
           productId={product.id}
           initialPackaging={initialPackaging}
           labelArtworkDocs={labelArtworkDocs}
-          onScoreChange={setScore}
+          onScoreChange={(s) => {
+            setScore(s);
+          }}
         />
       )}
 

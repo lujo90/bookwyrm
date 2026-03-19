@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { onDocumentVersionUploaded } from "@/lib/changes/cascadeHandler";
 import type { Document } from "@/types/database";
 
 /**
@@ -54,7 +55,7 @@ export async function GET(
 
 // ─── POST ─────────────────────────────────────────────────────────────────────
 
-const VALID_TYPES = ["spec_sheet", "lab_report", "certificate", "declaration", "other"] as const;
+const VALID_TYPES = ["spec_sheet", "lab_report", "certificate", "declaration", "label_artwork", "other"] as const;
 
 export async function POST(
   request: NextRequest,
@@ -172,8 +173,23 @@ export async function POST(
     .from(BUCKET)
     .createSignedUrl(storagePath, SIGNED_EXPIRY);
 
+  // Check if this is a replacement for an existing document of the same type.
+  // If so, trigger the document-version cascade (resets linked checklist items).
+  const { data: existingDocsRaw } = await db
+    .from("documents")
+    .select("id")
+    .eq("product_id", params.id)
+    .eq("type", type)
+    .neq("id", doc.id)
+    .limit(1);
+
+  const isReplacement = ((existingDocsRaw ?? []) as { id: string }[]).length > 0;
+  const cascade = isReplacement
+    ? await onDocumentVersionUploaded(params.id, type, db, user.email ?? "unknown", user.id)
+    : null;
+
   return NextResponse.json(
-    { document: { ...doc, signed_url: urlData?.signedUrl ?? null } },
+    { document: { ...doc, signed_url: urlData?.signedUrl ?? null }, cascade },
     { status: 201 },
   );
 }
