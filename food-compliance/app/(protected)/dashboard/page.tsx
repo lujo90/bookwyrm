@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import { createClient } from "@/lib/supabase/server";
+import type { SupplyChainEvent } from "@/types/database";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -23,6 +24,7 @@ export default async function DashboardPage() {
   // Get current user + profile to resolve org
   const { data: { user } } = await supabase.auth.getUser();
   let actions: ActionItem[] = [];
+  let supplyAlerts: SupplyChainEvent[] = [];
 
   if (user) {
     // Use explicit type cast to work around TypeScript inference on Supabase generics
@@ -45,6 +47,17 @@ export default async function DashboardPage() {
       const productNameMap = Object.fromEntries(
         (products ?? []).map((p) => [p.id, p.name]),
       );
+
+      // Fetch unresolved supply chain events (most recent first)
+      const db = supabase as any; // eslint-disable-line
+      const { data: eventsRaw } = await db
+        .from("supply_chain_events")
+        .select("*")
+        .eq("organisation_id", profile.organisation_id)
+        .is("resolved_at", null)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      supplyAlerts = (eventsRaw ?? []) as SupplyChainEvent[];
 
       if (productIds.length > 0) {
         // Step 2: fetch top 5 incomplete items for those products
@@ -215,7 +228,44 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        {/* ── Zone 2: placeholder ─────────────────────────────────── */}
+        {/* ── Zone 2: Supply Chain Alerts ─────────────────────────── */}
+        {supplyAlerts.length > 0 && (
+          <section style={{ marginBottom: 24 }}>
+            <div style={{ padding: "0 16px 10px" }}>
+              <h2
+                style={{
+                  fontSize: 13, fontWeight: 700, color: "#475569",
+                  fontFamily: "var(--font-body), DM Sans, sans-serif",
+                  margin: 0, textTransform: "uppercase", letterSpacing: "0.06em",
+                }}
+              >
+                Supply Chain Alerts
+              </h2>
+            </div>
+
+            <div style={{ backgroundColor: "white", borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0" }}>
+              {supplyAlerts.map((ev, idx) => (
+                <Link key={ev.id} href="/suppliers" style={{ textDecoration: "none" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", borderBottom: idx < supplyAlerts.length - 1 ? "1px solid #E2E8F0" : "none", backgroundColor: "white" }}>
+                    <span style={{ fontSize: 16, lineHeight: 1.4, flexShrink: 0 }}>🚨</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 600, color: "#1E293B", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>
+                        {ev.description ?? ev.event_type}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 11, color: "#94A3B8", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>
+                        {ev.affected_product_ids.length} product(s) affected
+                        {" · "}
+                        {new Date(ev.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Zone 3: placeholder ─────────────────────────────────── */}
         <section>
           <div style={{ padding: "0 16px 10px" }}>
             <h2

@@ -134,23 +134,47 @@ export interface Ingredient {
   is_organic:     boolean;
   origin_country: string | null;          // ISO country code
   sort_order:     number;
+  // Phase 7 additions
+  coa_document_id: string | null;         // FK to documents (Certificate of Analysis)
+  review_due_at:   string | null;         // ISO date for periodic ingredient review
   created_at:     string;
   updated_at:     string;
 }
 
 // ─── Supplier ─────────────────────────────────────────────────────────────────
 
+export type RiskRating = "low" | "medium" | "high";
+
 export interface Supplier {
-  id:                  string;
-  organisation_id:     string;
-  name:                string;
-  country_code:        string | null;
-  contact_email:       string | null;
-  contact_phone:       string | null;
-  certification_codes: string[];          // e.g. ["BRC","IFS","ORGANIC"]
-  notes:               string | null;
-  created_at:          string;
-  updated_at:          string;
+  id:               string;
+  organisation_id:  string;
+  name:             string;
+  country:          string | null;        // free-text country name
+  contact_email:    string | null;
+  certifications:   string[];             // e.g. ["BRC","IFS","ORGANIC"]
+  notes:            string | null;
+  // Approval workflow
+  approved:         boolean;
+  approval_date:    string | null;        // ISO timestamp
+  review_date:      string | null;        // ISO date
+  risk_rating:      RiskRating;
+  created_at:       string;
+  updated_at:       string;
+}
+
+// ─── SupplyChainEvent ─────────────────────────────────────────────────────────
+
+export interface SupplyChainEvent {
+  id:                      string;
+  organisation_id:         string;
+  event_type:              string;        // e.g. 'supplier_revoked'
+  affected_supplier_id:    string | null;
+  affected_ingredient_ids: string[];
+  affected_product_ids:    string[];
+  cascade_items_reset:     number;
+  description:             string | null;
+  created_at:              string;
+  resolved_at:             string | null;
 }
 
 // ─── Document ─────────────────────────────────────────────────────────────────
@@ -270,6 +294,11 @@ export interface Database {
         Row:    Supplier;
         Insert: Omit<Supplier, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<Supplier, "id" | "created_at">>;
+      };
+      supply_chain_events: {
+        Row:    SupplyChainEvent;
+        Insert: Omit<SupplyChainEvent, "id" | "created_at">;
+        Update: Pick<SupplyChainEvent, "resolved_at">;  // only resolvable
       };
       documents: {
         Row:    Document;

@@ -80,7 +80,7 @@ CREATE TABLE ingredients (
 
   name            text    NOT NULL,
   percentage      numeric(6,3) NOT NULL CHECK (percentage > 0 AND percentage <= 100),
-  supplier_id     uuid REFERENCES suppliers(id) ON DELETE SET NULL,
+  supplier_id     uuid,  -- FK to suppliers added in 008_alter_ingredients after suppliers table created
 
   is_allergen     boolean  NOT NULL DEFAULT false,
   allergen_codes  text[]   NOT NULL DEFAULT '{}',  -- EU allergen codes, e.g. ["GLUTEN","MILK"]

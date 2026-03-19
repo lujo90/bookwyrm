@@ -5,6 +5,7 @@ import ProductRecord from "./ProductRecord";
 import { createClient } from "@/lib/supabase/server";
 import { calculateScore } from "@/lib/score/calculateScore";
 import type { Product, ChecklistItem, AuditLog, Document } from "@/types/database";
+import type { IngredientWithSupplier } from "@/app/api/ingredients/route";
 import type { DocumentWithUrl } from "@/components/ui/DocumentRow";
 
 interface Props {
@@ -80,6 +81,71 @@ export default async function ProductPage({ params }: Props) {
   // Calculate initial score on the server so the page renders with correct data
   const initialScore = calculateScore(items);
 
+  // Fetch supply chain data: active formula + its ingredients with supplier info
+  const supabaseAny = supabase as any; // eslint-disable-line
+  let supplyIngredients: IngredientWithSupplier[] = [];
+
+  const { data: activeFormulaRaw } = await supabaseAny
+    .from("formulas")
+    .select("id")
+    .eq("product_id", params.id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (activeFormulaRaw) {
+    const formulaId = (activeFormulaRaw as { id: string }).id;
+    const { data: ingsRaw } = await supabaseAny
+      .from("ingredients")
+      .select("*")
+      .eq("formula_id", formulaId)
+      .order("sort_order", { ascending: true });
+
+    const rawIngredients = (ingsRaw ?? []) as any[]; // eslint-disable-line
+
+    if (rawIngredients.length > 0) {
+      const supplierIds = [...new Set(
+        rawIngredients.filter((i) => i.supplier_id).map((i) => i.supplier_id as string),
+      )];
+
+      const supplierMap = new Map<string, { name: string; country: string | null; approved: boolean }>();
+      if (supplierIds.length > 0) {
+        const { data: suppliersRaw } = await supabaseAny
+          .from("suppliers")
+          .select("id, name, country, approved")
+          .in("id", supplierIds);
+        for (const s of (suppliersRaw ?? [])) {
+          supplierMap.set(s.id, { name: s.name, country: s.country, approved: s.approved });
+        }
+      }
+
+      const coaIds = [...new Set(
+        rawIngredients.filter((i) => i.coa_document_id).map((i) => i.coa_document_id as string),
+      )];
+      const coaMap = new Map<string, { expiry_date: string | null }>();
+      if (coaIds.length > 0) {
+        const { data: coaDocs } = await supabaseAny
+          .from("documents")
+          .select("id, expiry_date")
+          .in("id", coaIds);
+        for (const d of (coaDocs ?? [])) {
+          coaMap.set(d.id, { expiry_date: d.expiry_date });
+        }
+      }
+
+      supplyIngredients = rawIngredients.map((ing) => {
+        const supplier = ing.supplier_id ? supplierMap.get(ing.supplier_id) : null;
+        const coa      = ing.coa_document_id ? coaMap.get(ing.coa_document_id) : null;
+        return {
+          ...ing,
+          supplier_name:     supplier?.name ?? null,
+          supplier_country:  supplier?.country ?? null,
+          supplier_approved: supplier?.approved ?? null,
+          coa_expiry_date:   coa?.expiry_date ?? null,
+        };
+      });
+    }
+  }
+
   return (
     <AppShell activeTab="products">
       <ProductRecord
@@ -88,6 +154,7 @@ export default async function ProductPage({ params }: Props) {
         auditLog={auditLog}
         initialScore={initialScore}
         initialDocuments={initialDocuments}
+        supplyIngredients={supplyIngredients}
       />
     </AppShell>
   );

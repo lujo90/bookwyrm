@@ -19,16 +19,19 @@ import type {
   ScoreResult,
   DocumentType,
 } from "@/types/database";
+import type { IngredientWithSupplier } from "@/app/api/ingredients/route";
+import SupplyChainHealth, { computeHealth } from "@/components/ui/SupplyChainHealth";
 import { calculateScore } from "@/lib/score/calculateScore";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ProductRecordProps {
-  product:          Product;
-  initialItems:     ChecklistItem[];
-  auditLog:         AuditLog[];
-  initialScore:     ScoreResult;
-  initialDocuments: DocumentWithUrl[];
+  product:            Product;
+  initialItems:       ChecklistItem[];
+  auditLog:           AuditLog[];
+  initialScore:       ScoreResult;
+  initialDocuments:   DocumentWithUrl[];
+  supplyIngredients?: IngredientWithSupplier[];
 }
 
 type Tab = "overview" | "documents" | "supply" | "audit";
@@ -447,6 +450,7 @@ export default function ProductRecord({
   auditLog,
   initialScore,
   initialDocuments,
+  supplyIngredients = [],
 }: ProductRecordProps) {
   const router    = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -1178,39 +1182,67 @@ export default function ProductRecord({
 
       {/* ── Supply Chain tab ────────────────────────────────────────── */}
       {tab === "supply" && (
-        <div style={{ padding: 16 }}>
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius:    12,
-              padding:         24,
-              textAlign:       "center",
-              border:          "1px solid #E2E8F0",
-            }}
-          >
-            <p style={{ fontSize: 24, margin: "0 0 8px" }}>🔗</p>
-            <p
-              style={{
-                fontSize:   14,
-                fontWeight: 600,
-                color:      "#1E293B",
-                fontFamily: "var(--font-body), DM Sans, sans-serif",
-                margin:     "0 0 4px",
-              }}
-            >
-              Supply Chain
-            </p>
-            <p
-              style={{
-                fontSize:   13,
-                color:      "#94A3B8",
-                fontFamily: "var(--font-body), DM Sans, sans-serif",
-                margin:     0,
-              }}
-            >
-              Coming in Phase 7 — manage suppliers and ingredient traceability.
-            </p>
-          </div>
+        <div>
+          {/* Health banner */}
+          <SupplyChainHealth status={computeHealth(supplyIngredients)} />
+
+          {supplyIngredients.length === 0 ? (
+            <div style={{ margin: "0 16px 16px", backgroundColor: "white", borderRadius: 12, padding: "24px 20px", textAlign: "center", border: "1px solid #E2E8F0" }}>
+              <p style={{ fontSize: 24, margin: "0 0 8px" }}>🌿</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#1E293B", fontFamily: "var(--font-body), DM Sans, sans-serif", margin: "0 0 4px" }}>
+                No ingredients yet
+              </p>
+              <p style={{ fontSize: 13, color: "#94A3B8", fontFamily: "var(--font-body), DM Sans, sans-serif", margin: "0 0 16px" }}>
+                Add ingredients to the active formula to track supplier compliance.
+              </p>
+            </div>
+          ) : (
+            <div>
+              {/* Section header */}
+              <p style={{ margin: "12px 16px 8px", fontSize: 11, fontWeight: 700, color: "#64748B", fontFamily: "var(--font-body), DM Sans, sans-serif", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Ingredients ({supplyIngredients.length})
+              </p>
+
+              <div style={{ backgroundColor: "white", borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0" }}>
+                {supplyIngredients.map((ing) => (
+                  <div key={ing.id} style={{ padding: "10px 16px", borderBottom: "1px solid #F1F5F9", display: "flex", alignItems: "center", gap: 10 }}>
+                    {/* Supplier approval dot */}
+                    <div style={{ flexShrink: 0, width: 8, height: 8, borderRadius: "50%", backgroundColor: !ing.supplier_id ? "#D97706" : ing.supplier_approved === false ? "#DC2626" : "#16A34A" }} />
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 600, color: "#1E293B", fontFamily: "var(--font-body), DM Sans, sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {ing.name}
+                        <span style={{ fontWeight: 400, color: "#94A3B8", marginLeft: 6 }}>{ing.percentage.toFixed(1)}%</span>
+                      </p>
+                      <p style={{ margin: 0, fontSize: 11, color: !ing.supplier_id ? "#D97706" : "#64748B", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>
+                        {!ing.supplier_id ? "No supplier" : `${ing.supplier_name}${ing.supplier_country ? ` · ${ing.supplier_country}` : ""}`}
+                        {ing.supplier_id && ing.supplier_approved === false && (
+                          <span style={{ marginLeft: 4, color: "#DC2626", fontWeight: 600 }}>(not approved)</span>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Allergen tags */}
+                    {ing.allergen_codes.slice(0, 2).map((code) => (
+                      <span key={code} style={{ flexShrink: 0, fontSize: 10, fontWeight: 600, padding: "2px 5px", borderRadius: 3, backgroundColor: "#FEF3C7", color: "#92400E", fontFamily: "var(--font-body), DM Sans, sans-serif" }}>
+                        {code}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Link to ingredients library */}
+              <div style={{ padding: "12px 16px" }}>
+                <a
+                  href="/ingredients"
+                  style={{ display: "block", width: "100%", height: 44, borderRadius: 8, border: "1px solid #DBEAFE", backgroundColor: "#EFF6FF", color: "#2563EB", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-body), DM Sans, sans-serif", cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  Open Ingredients Library →
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
