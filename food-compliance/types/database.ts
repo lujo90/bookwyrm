@@ -306,18 +306,77 @@ export interface ReviewConfirmation {
 }
 
 // ─── Regulation ───────────────────────────────────────────────────────────────
-// Reference table of EU food regulations (used when generating checklist items).
 
 export interface Regulation {
-  id:                    string;
-  code:                  string;          // e.g. "EU 1169/2011"
-  short_name:            string;          // e.g. "Food Information to Consumers"
-  article:               string | null;   // e.g. "Article 9"
-  plain_english:         string;
-  eur_lex_url:           string;
-  applies_to_categories: string[];
-  created_at:            string;
-  updated_at:            string;
+  id:                  string;
+  code:                string;            // e.g. "EU 1169/2011"
+  title:               string;            // e.g. "Food Information to Consumers (FIC)"
+  summary:             string | null;
+  applies_to:          string[];          // e.g. ["all"] or ["organic"]
+  markets:             string[];          // e.g. ["EU"]
+  channels:            string[];
+  certifications:      string[];
+  checklist_item_refs: string[];
+  official_url:        string | null;     // EUR-Lex link
+  effective_date:      string | null;     // ISO date
+  last_updated:        string | null;
+  version:             number;
+  status:              string;            // 'active' | 'superseded'
+  ai_confidence_score: number | null;
+  created_at:          string;
+}
+
+// ─── RegulationVersion ───────────────────────────────────────────────────────
+
+export interface RegulationVersion {
+  id:                 string;
+  regulation_id:      string;
+  version:            number;
+  summary:            string | null;
+  change_description: string | null;
+  changed_at:         string;
+  changed_by:         string | null;
+}
+
+// ─── RegulationReviewQueue ───────────────────────────────────────────────────
+
+export interface RegulationReviewQueue {
+  id:                     string;
+  eurlex_document_url:    string | null;
+  eurlex_celex_number:    string | null;
+  raw_text:               string | null;
+  ai_interpretation:      Record<string, unknown> | null;
+  proposed_regulation_id: string | null;
+  is_new_regulation:      boolean;
+  status:                 string;         // 'pending' | 'approved' | 'rejected'
+  reviewer_notes:         string | null;
+  reviewed_by:            string | null;
+  reviewed_at:            string | null;
+  created_at:             string;
+}
+
+// ─── RegulationAlert ─────────────────────────────────────────────────────────
+
+export interface RegulationAlert {
+  id:              string;
+  organisation_id: string;
+  product_id:      string;
+  regulation_id:   string | null;
+  alert_type:      string;               // 'regulation_update'
+  message:         string | null;
+  read:            boolean;
+  created_at:      string;
+}
+
+// ─── MonitoringJobLog ────────────────────────────────────────────────────────
+
+export interface MonitoringJobLog {
+  id:               string;
+  job_name:         string | null;
+  run_at:           string;
+  documents_found:  number;
+  documents_queued: number;
+  error_text:       string | null;
 }
 
 // ─── Database helper type ─────────────────────────────────────────────────────
@@ -377,8 +436,28 @@ export interface Database {
       };
       regulations: {
         Row:    Regulation;
-        Insert: Omit<Regulation, "id" | "created_at" | "updated_at">;
+        Insert: Omit<Regulation, "id" | "created_at">;
         Update: Partial<Omit<Regulation, "id" | "created_at">>;
+      };
+      regulation_versions: {
+        Row:    RegulationVersion;
+        Insert: Omit<RegulationVersion, "id" | "changed_at">;
+        Update: Record<string, never>;
+      };
+      regulation_review_queue: {
+        Row:    RegulationReviewQueue;
+        Insert: Omit<RegulationReviewQueue, "id" | "created_at">;
+        Update: Partial<Omit<RegulationReviewQueue, "id" | "created_at">>;
+      };
+      regulation_alerts: {
+        Row:    RegulationAlert;
+        Insert: Omit<RegulationAlert, "id" | "created_at">;
+        Update: Partial<Omit<RegulationAlert, "id" | "created_at">>;
+      };
+      monitoring_job_log: {
+        Row:    MonitoringJobLog;
+        Insert: Omit<MonitoringJobLog, "id" | "run_at">;
+        Update: Record<string, never>;
       };
       audit_log: {
         Row:    AuditLog;

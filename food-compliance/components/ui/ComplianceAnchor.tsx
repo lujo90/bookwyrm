@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { ExternalLink, X } from "lucide-react";
 
@@ -8,10 +9,16 @@ interface ComplianceAnchorProps {
   code: string;
   /** Article reference, e.g. "Article 9 — Mandatory particulars" */
   article: string;
-  /** Plain-English explanation of what this regulation requires */
+  /** Plain-English explanation of what this regulation requires (fallback) */
   explanation: string;
-  /** Direct EUR-Lex URL to the full legal text */
+  /** Direct EUR-Lex URL to the full legal text (fallback) */
   url: string;
+}
+
+interface RegulationData {
+  title: string;
+  summary: string | null;
+  official_url: string | null;
 }
 
 /**
@@ -20,12 +27,8 @@ interface ComplianceAnchorProps {
  * Small tappable regulation pill that opens a popover with:
  *   - Regulation code (header)
  *   - Article reference
- *   - Plain-English explanation
- *   - Link to EUR-Lex
- *
- * Spec: 10px DM Sans 600, uppercase, #2563EB on #EFF6FF,
- *       1px solid #BFDBFE, padding 3px 8px, border-radius 20px.
- *       Popover max-width 280px.
+ *   - Plain-English explanation (fetched from DB, with prop fallback)
+ *   - Link to EUR-Lex (fetched from DB, with prop fallback)
  */
 export default function ComplianceAnchor({
   code,
@@ -33,8 +36,30 @@ export default function ComplianceAnchor({
   explanation,
   url,
 }: ComplianceAnchorProps) {
+  const [regData, setRegData] = useState<RegulationData | null>(null);
+  const [fetched, setFetched] = useState(false);
+
+  // Fetch real regulation data when the popover is first opened
+  function handleOpenChange(open: boolean) {
+    if (open && !fetched) {
+      setFetched(true);
+      fetch(`/api/admin/regulations?code=${encodeURIComponent(code)}`)
+        .then((r) => r.json())
+        .then((data: RegulationData[]) => {
+          if (Array.isArray(data) && data.length > 0) {
+            setRegData(data[0]);
+          }
+        })
+        .catch(() => {/* fall back to props */});
+    }
+  }
+
+  const displayExplanation = regData?.summary ?? explanation;
+  const displayUrl = regData?.official_url ?? url;
+  const displayTitle = regData?.title ?? null;
+
   return (
-    <Popover.Root>
+    <Popover.Root onOpenChange={handleOpenChange}>
       <Popover.Trigger asChild>
         <button
           aria-label={`View regulation ${code}`}
@@ -117,6 +142,22 @@ export default function ComplianceAnchor({
             {code}
           </p>
 
+          {/* Title (from DB) */}
+          {displayTitle && (
+            <p
+              style={{
+                fontSize:     12,
+                fontWeight:   700,
+                color:        "#1E293B",
+                marginBottom: 4,
+                lineHeight:   1.4,
+                fontFamily:   "var(--font-body), DM Sans, sans-serif",
+              }}
+            >
+              {displayTitle}
+            </p>
+          )}
+
           {/* Article */}
           <p
             style={{
@@ -141,28 +182,30 @@ export default function ComplianceAnchor({
               fontFamily:   "var(--font-body), DM Sans, sans-serif",
             }}
           >
-            {explanation}
+            {displayExplanation}
           </p>
 
           {/* EUR-Lex link */}
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display:    "inline-flex",
-              alignItems: "center",
-              gap:        4,
-              fontSize:   12,
-              fontWeight: 600,
-              color:      "#2563EB",
-              textDecoration: "none",
-              fontFamily: "var(--font-body), DM Sans, sans-serif",
-            }}
-          >
-            Read full text on EUR-Lex
-            <ExternalLink size={11} />
-          </a>
+          {displayUrl && (
+            <a
+              href={displayUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display:    "inline-flex",
+                alignItems: "center",
+                gap:        4,
+                fontSize:   12,
+                fontWeight: 600,
+                color:      "#2563EB",
+                textDecoration: "none",
+                fontFamily: "var(--font-body), DM Sans, sans-serif",
+              }}
+            >
+              Read full text on EUR-Lex
+              <ExternalLink size={11} />
+            </a>
+          )}
 
           <Popover.Arrow
             style={{ fill: "white", filter: "drop-shadow(0 1px 0 #E2E8F0)" }}
