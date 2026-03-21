@@ -15,6 +15,10 @@ function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return true;
   }
+  // Allow auth callback (email verification, password reset)
+  if (pathname.startsWith("/auth/callback")) {
+    return true;
+  }
   // Allow public share links: /share/<any-token>
   if (pathname.startsWith("/share/")) {
     return true;

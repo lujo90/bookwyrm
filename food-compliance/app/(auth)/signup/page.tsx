@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import SignupForm from "./SignupForm";
 
 export const metadata: Metadata = { title: "Sign up" };
 
@@ -10,7 +11,7 @@ export default function SignupPage() {
         <p className="text-sm text-light mb-6">
           Start managing your EU food compliance today
         </p>
-        {/* Auth form added in Phase 2 */}
+        <SignupForm />
         <p className="text-xs text-center text-light mt-4">
           Already have an account?{" "}
           <a href="/login" className="text-primary font-medium hover:underline">

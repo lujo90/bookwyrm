@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ResetPasswordForm from "./ResetPasswordForm";
 
 export const metadata: Metadata = { title: "Reset password" };
 
@@ -10,7 +11,7 @@ export default function ResetPasswordPage() {
         <p className="text-sm text-light mb-6">
           Enter your email and we&apos;ll send you a reset link
         </p>
-        {/* Reset form added in Phase 2 */}
+        <ResetPasswordForm />
       </div>
     </main>
   );
