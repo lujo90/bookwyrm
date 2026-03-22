@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import AppShell from "@/components/layout/AppShell";
 import ProductRecord from "./ProductRecord";
+import AgentSidebar from "@/components/agent/AgentSidebar";
 import { createClient } from "@/lib/supabase/server";
 import { calculateScore } from "@/lib/score/calculateScore";
 import type { Product, ChecklistItem, AuditLog, Document, Packaging, Review } from "@/types/database";
@@ -185,17 +186,27 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <AppShell activeTab="products">
-      <ProductRecord
-        product={product}
-        initialItems={items}
-        auditLog={auditLog}
-        initialScore={initialScore}
-        initialDocuments={initialDocuments}
-        supplyIngredients={supplyIngredients}
-        initialPackaging={initialPackaging}
-        labelArtworkDocs={labelArtworkDocs}
-        activeReview={activeReview}
-      />
+      {/* On desktop the AgentSidebar is a fixed 320px right panel.
+          The style tag shifts the page content left so nothing is hidden behind it. */}
+      <div id="product-page-content">
+        <ProductRecord
+          product={product}
+          initialItems={items}
+          auditLog={auditLog}
+          initialScore={initialScore}
+          initialDocuments={initialDocuments}
+          supplyIngredients={supplyIngredients}
+          initialPackaging={initialPackaging}
+          labelArtworkDocs={labelArtworkDocs}
+          activeReview={activeReview}
+        />
+      </div>
+      <AgentSidebar productId={params.id} productName={product.name} />
+      <style>{`
+        @media (min-width: 768px) {
+          #product-page-content { margin-right: 320px; }
+        }
+      `}</style>
     </AppShell>
   );
 }

@@ -85,10 +85,12 @@ function ChecklistRow({
   item,
   onToggle,
   loading,
+  productId,
 }: {
-  item:     ChecklistItem;
-  onToggle: (item: ChecklistItem) => void;
-  loading:  boolean;
+  item:      ChecklistItem;
+  onToggle:  (item: ChecklistItem) => void;
+  loading:   boolean;
+  productId: string;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -190,6 +192,7 @@ function ChecklistRow({
                 article={item.regulation_article!}
                 explanation={item.regulation_explanation!}
                 url={item.regulation_url!}
+                productId={productId}
               />
             </div>
           )}
@@ -276,6 +279,7 @@ function CategorySection({
   items,
   onToggle,
   loadingId,
+  productId,
 }: {
   label:      string;
   color:      string;
@@ -283,6 +287,7 @@ function CategorySection({
   items:      ChecklistItem[];
   onToggle:   (item: ChecklistItem) => void;
   loadingId:  string | null;
+  productId:  string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -338,6 +343,7 @@ function CategorySection({
                 item={item}
                 onToggle={onToggle}
                 loading={loadingId === item.id}
+                productId={productId}
               />
             ))
           )}
@@ -975,6 +981,7 @@ export default function ProductRecord({
                   items={catItems}
                   onToggle={handleToggle}
                   loadingId={loadingId}
+                  productId={product.id}
                 />
               );
             })}

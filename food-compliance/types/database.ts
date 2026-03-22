@@ -368,6 +368,18 @@ export interface RegulationAlert {
   created_at:      string;
 }
 
+// ─── AgentMessage ─────────────────────────────────────────────────────────────
+
+export interface AgentMessage {
+  id:              string;
+  organisation_id: string;
+  product_id:      string | null;
+  message:         string;
+  trigger_type:    string;   // 'product_created' | 'formula_saved' | 'document_uploaded' | etc.
+  read:            boolean;
+  created_at:      string;
+}
+
 // ─── MonitoringJobLog ────────────────────────────────────────────────────────
 
 export interface MonitoringJobLog {
@@ -453,6 +465,11 @@ export interface Database {
         Row:    RegulationAlert;
         Insert: Omit<RegulationAlert, "id" | "created_at">;
         Update: Partial<Omit<RegulationAlert, "id" | "created_at">>;
+      };
+      agent_messages: {
+        Row:    AgentMessage;
+        Insert: Omit<AgentMessage, "id" | "created_at">;
+        Update: Pick<AgentMessage, "read">;
       };
       monitoring_job_log: {
         Row:    MonitoringJobLog;

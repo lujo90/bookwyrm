@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink, X, MessageCircle } from "lucide-react";
+import RegulationExplainer from "@/components/ui/RegulationExplainer";
 
 interface ComplianceAnchorProps {
   /** Regulation code shown on the pill, e.g. "EU 1169/2011" */
@@ -13,6 +14,8 @@ interface ComplianceAnchorProps {
   explanation: string;
   /** Direct EUR-Lex URL to the full legal text (fallback) */
   url: string;
+  /** If provided, enables the "Ask the advisor about this" inline explainer */
+  productId?: string;
 }
 
 interface RegulationData {
@@ -29,15 +32,18 @@ interface RegulationData {
  *   - Article reference
  *   - Plain-English explanation (fetched from DB, with prop fallback)
  *   - Link to EUR-Lex (fetched from DB, with prop fallback)
+ *   - "Ask the advisor about this" button (when productId is provided)
  */
 export default function ComplianceAnchor({
   code,
   article,
   explanation,
   url,
+  productId,
 }: ComplianceAnchorProps) {
-  const [regData, setRegData] = useState<RegulationData | null>(null);
-  const [fetched, setFetched] = useState(false);
+  const [regData, setRegData]         = useState<RegulationData | null>(null);
+  const [fetched, setFetched]         = useState(false);
+  const [showExplainer, setExplainer] = useState(false);
 
   // Fetch real regulation data when the popover is first opened
   function handleOpenChange(open: boolean) {
@@ -52,11 +58,12 @@ export default function ComplianceAnchor({
         })
         .catch(() => {/* fall back to props */});
     }
+    if (!open) setExplainer(false);
   }
 
   const displayExplanation = regData?.summary ?? explanation;
-  const displayUrl = regData?.official_url ?? url;
-  const displayTitle = regData?.title ?? null;
+  const displayUrl         = regData?.official_url ?? url;
+  const displayTitle       = regData?.title ?? null;
 
   return (
     <Popover.Root onOpenChange={handleOpenChange}>
@@ -64,24 +71,24 @@ export default function ComplianceAnchor({
         <button
           aria-label={`View regulation ${code}`}
           style={{
-            display:        "inline-flex",
-            alignItems:     "center",
-            justifyContent: "center",
-            minHeight:      44,
-            padding:        "0 8px",
-            borderRadius:   20,
-            fontSize:       10,
-            fontWeight:     600,
-            textTransform:  "uppercase",
-            letterSpacing:  "0.06em",
-            color:          "#2563EB",
+            display:         "inline-flex",
+            alignItems:      "center",
+            justifyContent:  "center",
+            minHeight:       44,
+            padding:         "0 8px",
+            borderRadius:    20,
+            fontSize:        10,
+            fontWeight:      600,
+            textTransform:   "uppercase",
+            letterSpacing:   "0.06em",
+            color:           "#2563EB",
             backgroundColor: "#EFF6FF",
-            border:         "1px solid #BFDBFE",
-            fontFamily:     "var(--font-body), DM Sans, sans-serif",
-            cursor:         "pointer",
-            whiteSpace:     "nowrap",
-            lineHeight:     1.4,
-            background:     "none",
+            border:          "1px solid #BFDBFE",
+            fontFamily:      "var(--font-body), DM Sans, sans-serif",
+            cursor:          "pointer",
+            whiteSpace:      "nowrap",
+            lineHeight:      1.4,
+            background:      "none",
           }}
         >
           <span style={{
@@ -102,7 +109,7 @@ export default function ComplianceAnchor({
           side="top"
           align="start"
           sideOffset={6}
-          style={{ maxWidth: 280, zIndex: 50 }}
+          style={{ maxWidth: showExplainer ? 320 : 280, zIndex: 50 }}
           className="rounded-xl bg-white p-4 shadow-lg border border-border"
         >
           {/* Close */}
@@ -192,19 +199,54 @@ export default function ComplianceAnchor({
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                display:    "inline-flex",
-                alignItems: "center",
-                gap:        4,
-                fontSize:   12,
-                fontWeight: 600,
-                color:      "#2563EB",
+                display:        "inline-flex",
+                alignItems:     "center",
+                gap:            4,
+                fontSize:       12,
+                fontWeight:     600,
+                color:          "#2563EB",
                 textDecoration: "none",
-                fontFamily: "var(--font-body), DM Sans, sans-serif",
+                fontFamily:     "var(--font-body), DM Sans, sans-serif",
               }}
             >
               Read full text on EUR-Lex
               <ExternalLink size={11} />
             </a>
+          )}
+
+          {/* Ask the advisor — only if productId is available */}
+          {productId && !showExplainer && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                onClick={() => setExplainer(true)}
+                style={{
+                  display:         "inline-flex",
+                  alignItems:      "center",
+                  gap:             5,
+                  fontSize:        12,
+                  fontWeight:      600,
+                  color:           "#7C3AED",
+                  backgroundColor: "#F5F3FF",
+                  border:          "1px solid #DDD6FE",
+                  borderRadius:    8,
+                  padding:         "5px 10px",
+                  cursor:          "pointer",
+                  fontFamily:      "var(--font-body), DM Sans, sans-serif",
+                }}
+              >
+                <MessageCircle size={12} />
+                Ask the advisor about this
+              </button>
+            </div>
+          )}
+
+          {/* Inline regulation explainer */}
+          {productId && showExplainer && (
+            <RegulationExplainer
+              code={code}
+              productId={productId}
+              onClose={() => setExplainer(false)}
+            />
           )}
 
           <Popover.Arrow
